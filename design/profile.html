@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perch: Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="perch.css" />
+
+    <!-- Accent budget for this screen, two at most, never three:
+       1. the fresh time signal on resume-systems.pdf (.t-fresh)
+       2. the selection bar, on whichever list row j/k is sitting on
+     Field rows inside a card take the quiet .field.is-selected treatment
+     instead, so moving through the profile spends no accent at all. There
+     is no primary action on this screen, so there is no .btn-primary. -->
+
+    <style>
+      /* One-off layout only. No colour that is not already a token. */
+      .pane-head {
+        max-width: 724px; /* head sits over the same 660px reading column */
+      }
+      .col {
+        max-width: 660px;
+      }
+      .head-aside {
+        flex: none;
+        text-align: right;
+      }
+      .head-aside .p13 {
+        white-space: nowrap;
+      }
+      .field-label .prov {
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .p13 {
+        font-size: var(--t-13);
+        line-height: 1.65;
+        margin: 0;
+        color: var(--ink-2);
+      }
+      .p13-ink {
+        color: var(--ink);
+      }
+      .p13-quiet {
+        color: var(--ink-3);
+      }
+      .field.is-selected {
+        background: var(--paper-sunk);
+        border-radius: 4px;
+        margin: 0 -10px;
+        padding: 11px 10px;
+      }
+      .field-value[contenteditable="true"] {
+        outline: none;
+        background: var(--paper-sunk);
+        border-radius: 3px;
+        box-shadow: 0 0 0 4px var(--paper-sunk);
+      }
+      .queue > .row:last-child {
+        border-bottom: 0;
+      }
+      .check {
+        width: 15px;
+        height: 15px;
+        margin-top: 3px;
+        accent-color: var(--accent);
+        flex: none;
+        color-scheme: light;
+      }
+      :root[data-theme="dark"] .check {
+        color-scheme: dark;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div data-rail></div>
+      <div class="stage">
+        <section class="pane">
+          <header class="pane-head">
+            <div>
+              <h1 class="pane-title">Profile</h1>
+              <div class="pane-sub">
+                All of this is
+                <span class="mono">~/.config/perch/profile.toml</span>, a plain
+                text file. You can open it in any editor and change it by hand.
+                Perch reads it back the next time it runs.
+              </div>
+            </div>
+            <div class="head-aside">
+              <button class="btn btn-sm" type="button">Open in editor</button>
+              <div class="p13 p13-quiet mt-2">changes save as you type</div>
+            </div>
+          </header>
+
+          <div class="pane-body pad-top">
+            <div class="col">
+              <!-- ── You ────────────────────────────────────────────── -->
+              <div class="section-head">You</div>
+
+              <div class="card" data-queue>
+                <div class="field" data-row>
+                  <div class="field-label">
+                    Name <span class="prov">profile.toml</span>
+                  </div>
+                  <div class="field-value">Dana Ferreira</div>
+                </div>
+                <div class="field" data-row>
+                  <div class="field-label">
+                    Email <span class="prov">profile.toml</span>
+                  </div>
+                  <div class="field-value">dana@dferreira.dev</div>
+                </div>
+                <div class="field" data-row>
+                  <div class="field-label">
+                    Phone <span class="prov">resume-systems.pdf</span>
+                  </div>
+                  <div class="field-value">+1 415 555 0148</div>
+                </div>
+                <div class="field" data-row>
+                  <div class="field-label">
+                    Location <span class="prov">profile.toml</span>
+                  </div>
+                  <div class="field-value">
+                    Oakland, California. Remote or the Bay Area
+                  </div>
+                </div>
+                <div class="field" data-row>
+                  <div class="field-label">
+                    Work authorisation <span class="prov">profile.toml</span>
+                  </div>
+                  <div class="field-value">
+                    US citizen. I don't need sponsorship now or later.
+                  </div>
+                </div>
+                <div class="field" data-row>
+                  <div class="field-label">
+                    Links <span class="prov">profile.toml</span>
+                  </div>
+                  <div class="field-value">
+                    github.com/dferreira · dferreira.dev
+                  </div>
+                </div>
+                <div class="field" data-row>
+                  <div class="field-label">
+                    Years of experience
+                    <span class="prov">resume-systems.pdf</span>
+                  </div>
+                  <div class="field-value">
+                    9 years, backend and distributed storage since 2017
+                  </div>
+                </div>
+              </div>
+
+              <p class="p13 p13-quiet mt-4">
+                Perch never fills demographic questions, and there is nowhere in
+                this file to keep an answer to one.
+              </p>
+
+              <!-- ── Documents ──────────────────────────────────────── -->
+              <div class="section-head">Documents</div>
+
+              <div class="queue" data-queue>
+                <div class="row row-fresh" data-row>
+                  <div class="flex items-baseline gap-3 flex-wrap">
+                    <span class="p13 p13-ink mono">resume-systems.pdf</span>
+                    <span class="tag">pdf</span>
+                    <span class="row-meta">148 KB</span>
+                  </div>
+                  <div class="row-meta mt-1">
+                    <span
+                      >Attached to the Val Town application,
+                      <span class="t-fresh">last night</span>.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-settled" data-row>
+                  <div class="flex items-baseline gap-3 flex-wrap">
+                    <span class="p13 p13-ink mono">letter-opening.md</span>
+                    <span class="tag">md</span>
+                    <span class="row-meta">2.4 KB</span>
+                  </div>
+                  <div class="row-meta mt-1">
+                    <span
+                      >You copied two paragraphs of this into the Sourcegraph
+                      letter, <span class="t-settled">24 days ago</span>.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-stale" data-row>
+                  <div class="flex items-baseline gap-3 flex-wrap">
+                    <span class="p13 p13-ink mono">resume-platform.pdf</span>
+                    <span class="tag">pdf</span>
+                    <span class="row-meta">141 KB</span>
+                  </div>
+                  <div class="row-meta mt-1">
+                    <span
+                      >Attached to the Ramp application,
+                      <span class="t-stale">seven weeks ago</span>.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-tired" data-row>
+                  <div class="flex items-baseline gap-3 flex-wrap">
+                    <span class="p13 p13-ink mono">letter-referral.md</span>
+                    <span class="tag">md</span>
+                    <span class="row-meta">1.1 KB</span>
+                  </div>
+                  <div class="row-meta mt-1">
+                    <span
+                      >Not used yet. It has been sitting here
+                      <span class="t-tired"
+                        >since you set Perch up in March</span
+                      >.</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <p class="p13 p13-quiet mt-4">
+                Perch attaches whichever file you pick. It does not edit these,
+                and it does not write new ones.
+              </p>
+
+              <!-- ── Model ──────────────────────────────────────────── -->
+              <div class="section-head">Model</div>
+
+              <p class="p13">
+                Perch probed <span class="mono">localhost:11434</span> when it
+                launched and found Ollama running. Three models are installed on
+                this Mac.
+              </p>
+
+              <div class="queue mt-4" data-queue>
+                <div class="row" data-row>
+                  <div class="flex items-baseline gap-3 flex-wrap">
+                    <span class="p13 p13-ink mono">llama3.1:8b</span>
+                    <span class="row-meta">4.7 GB on disk</span>
+                  </div>
+                  <div class="row-meta mt-1">
+                    <span
+                      >The one Perch uses when you run
+                      <span class="mono">profile import</span>.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row" data-row>
+                  <div class="flex items-baseline gap-3 flex-wrap">
+                    <span class="p13 p13-ink mono">qwen2.5:7b</span>
+                    <span class="row-meta">4.4 GB on disk</span>
+                  </div>
+                  <div class="row-meta mt-1">
+                    <span
+                      >Installed, not in use.
+                      <span class="mono">model set qwen2.5:7b</span> switches to
+                      it.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row" data-row>
+                  <div class="flex items-baseline gap-3 flex-wrap">
+                    <span class="p13 p13-ink mono">phi3:3.8b</span>
+                    <span class="row-meta">2.2 GB on disk</span>
+                  </div>
+                  <div class="row-meta mt-1">
+                    <span
+                      >Installed, not in use.
+                      <span class="mono">model set phi3:3.8b</span> switches to
+                      it.</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <p class="p13 p13-quiet mt-4">
+                Reading a résumé into fields is a small job. A 3B model does it
+                well enough, so pick whichever one is already on disk.
+              </p>
+
+              <p class="p13 mt-5">
+                Nothing above is required. Watching boards, matching roles
+                against your rules, filling forms and keeping track of what you
+                sent all work with no model configured. None of that involves
+                inference.
+              </p>
+
+              <p class="p13 mt-3">
+                A model helps with one thing: reading a résumé into proposed
+                fields, which you then accept or edit line by line. Running
+                Perch with no model is a complete, supported way to use it.
+                <span class="mono">model off</span> turns it back to that at any
+                time.
+              </p>
+
+              <div class="card mt-5">
+                <div class="field">
+                  <div class="field-label">
+                    Remote endpoint <span class="prov">profile.toml</span>
+                  </div>
+                  <input
+                    class="input"
+                    type="text"
+                    placeholder="https://endpoint.example.com/v1"
+                    spellcheck="false"
+                    aria-label="remote endpoint"
+                  />
+                  <div class="p13 p13-quiet mt-2">
+                    Empty. Perch is using the local model above.
+                  </div>
+                </div>
+
+                <div class="field">
+                  <div class="field-label">
+                    API key <span class="prov">system keychain</span>
+                  </div>
+                  <div class="field-value p13 p13-ink">
+                    Kept in the macOS keychain. It is never written to
+                    <span class="mono">profile.toml</span>, so the file stays
+                    safe to read, copy, and keep in version control.
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" class="check" />
+                    <span class="p13 p13-ink"
+                      >Résumé import may use this remote endpoint</span
+                    >
+                  </label>
+                  <p class="p13 p13-ink mt-2">
+                    If this is on, your résumé is sent to that server and leaves
+                    this Mac.
+                  </p>
+                  <p class="p13 p13-quiet mt-2">
+                    Résumé import is the only thing listed here. It is the only
+                    part of Perch that would send anything anywhere.
+                  </p>
+                </div>
+              </div>
+
+              <p class="p13 p13-quiet mt-5">
+                No account, no sync, no telemetry. Nothing leaves this Mac
+                unless you turn on the box above.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="hint-bar">
+      <span class="hint"
+        ><span class="kbd">j</span> <span class="kbd">k</span> move</span
+      >
+      <span class="hint"><span class="kbd">↵</span> edit field</span>
+      <span class="spacer"></span>
+      <span class="hint"><span class="kbd">⌘K</span> commands</span>
+    </div>
+
+    <script src="perch.js"></script>
+    <script>
+      perchBoot({
+        active: "Profile",
+        queue: {
+          selectFirst: false,
+          onOpen(el) {
+            /* Only the profile fields are editable. Enter on a document or a
+               model row does nothing. */
+            const v = el && el.querySelector(".field-value");
+            if (!v) return;
+            v.contentEditable = "true";
+            v.focus();
+            const sel = document.getSelection();
+            if (sel) sel.selectAllChildren(v);
+          },
+        },
+      });
+
+      /* Typing inside a field never moves the cursor behind your back. No
+         queue here is [data-clearable], so x already does nothing on this
+         screen. The page does not have to block it. */
+      document.addEventListener(
+        "keydown",
+        (e) => {
+          const el = document.activeElement;
+          if (el && el.isContentEditable && !e.metaKey && !e.ctrlKey) {
+            if (e.key === "Enter" || e.key === "Escape") {
+              e.preventDefault();
+              el.contentEditable = "false";
+              el.blur();
+            }
+            e.stopPropagation();
+            return;
+          }
+        },
+        true,
+      );
+    </script>
+  </body>
+</html>

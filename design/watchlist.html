@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perch: Watchlist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="perch.css" />
+
+    <!-- Accent budget for this screen, two:
+       1. the selection bar on the first row (.row.is-selected::before)
+       2. the .t-fresh signal on Sourcegraph, checked eleven minutes ago
+     No primary button here; syncing is a ghost, same as the Feed. The
+     wordmark dot in the rail is shared chrome from perch.js, on every view. -->
+
+    <style>
+      /* One-off layout for this screen: a single reading column, and the
+     quiet ellipsis on the board Perch is still reading through. */
+      .pane-head {
+        max-width: 724px;
+      }
+      .col {
+        max-width: 660px;
+      }
+      .add-cmd {
+        font-size: var(--t-11);
+        margin-top: 8px;
+      }
+      .queue > .row:last-child {
+        border-bottom: 0;
+      }
+      /* same note treatment as the Applications view */
+      .note {
+        font-size: var(--t-12);
+        color: var(--ink-3);
+        line-height: 1.6;
+        max-width: 58ch;
+        margin: 0 0 10px;
+        padding: 0 0 6px 18px;
+      }
+      .dots i {
+        font-style: normal;
+        animation: perch-dot 1.5s ease-in-out infinite;
+      }
+      .dots i:nth-child(2) {
+        animation-delay: 0.18s;
+      }
+      .dots i:nth-child(3) {
+        animation-delay: 0.36s;
+      }
+      @keyframes perch-dot {
+        0%,
+        65%,
+        100% {
+          opacity: 0.3;
+        }
+        32% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .dots i {
+          animation: none;
+          opacity: 0.55;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div data-rail></div>
+
+      <div class="stage">
+        <section class="pane">
+          <header class="pane-head">
+            <div>
+              <h1 class="pane-title">Watchlist</h1>
+              <p class="pane-sub">
+                Perch checks each of these boards about every half hour while
+                this Mac is awake, and backs off to once a day for the ones that
+                have gone quiet.
+              </p>
+            </div>
+            <button class="btn btn-ghost btn-sm" type="button">Sync all</button>
+          </header>
+
+          <div class="pane-body pad-top">
+            <div class="col">
+              <div class="pt-2 pb-1">
+                <input
+                  class="input"
+                  type="text"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-label="add a company"
+                  placeholder="add a company by name or careers URL"
+                />
+                <div class="mono muted add-cmd">watch add &lt;company&gt;</div>
+              </div>
+
+              <div class="queue mt-6" data-queue data-clearable="no longer watched">
+                <div class="section-head">Just added</div>
+
+                <!-- mid-read: a normal row that happens to be in this state -->
+                <div class="row row-fresh" data-row>
+                  <div class="row-title">Cursor</div>
+                  <div class="row-meta">
+                    <span class="tag">Greenhouse</span>
+                    <span class="mono muted">boards.greenhouse.io/cursor</span>
+                    <span class="sep">·</span>
+                    <span
+                      >reading the board through once<span class="dots"
+                        ><i>.</i><i>.</i><i>.</i></span
+                      ></span
+                    >
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >Perch found the board from
+                      <span class="mono">cursor.com</span> a minute ago.
+                      Anything already open there arrives in the feed at its
+                      real age, not as new. That includes the role you applied
+                      to in May, before Perch was watching.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="section-head">Watching</div>
+
+                <p class="note">
+                  Greenhouse, Lever, and Ashby boards fill from your profile. A
+                  board Perch can read but not fill opens in the browser
+                  instead.
+                </p>
+
+                <div class="row row-fresh" data-row>
+                  <div class="row-title">Sourcegraph</div>
+                  <div class="row-meta">
+                    <span class="tag">Greenhouse</span>
+                    <span class="mono muted"
+                      >boards.greenhouse.io/sourcegraph</span
+                    >
+                    <span class="sep">·</span>
+                    <span class="t-fresh">checked 11 minutes ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >Three roles have matched here since March. One is still
+                      open, and one is the application you sent 24 days
+                      ago.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-recent" data-row>
+                  <div class="row-title">Oxide Computer</div>
+                  <div class="row-meta">
+                    <span class="tag">Lever</span>
+                    <span class="mono muted">jobs.lever.co/oxidecomputer</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">checked 40 minutes ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >Two roles have matched since you added this in March. You
+                      applied to the first three weeks ago; the second went up
+                      four hours ago.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-recent" data-row>
+                  <div class="row-title">Astral</div>
+                  <div class="row-meta">
+                    <span class="tag">Ashby</span>
+                    <span class="mono muted">jobs.ashbyhq.com/astral</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">checked an hour ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >Two roles have matched. You sent the first at the end of
+                      June and that posting has since come down; the second
+                      went up nine hours ago.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-recent" data-row>
+                  <div class="row-title">Val Town</div>
+                  <div class="row-meta">
+                    <span class="tag">Ashby</span>
+                    <span class="mono muted">jobs.ashbyhq.com/valtown</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">checked an hour and a half ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >One role has matched, and you sent it last night. The
+                      board has listed two others since May, neither of them
+                      systems work.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-recent" data-row>
+                  <div class="row-title">Tigris Data</div>
+                  <div class="row-meta">
+                    <span class="tag">Lever</span>
+                    <span class="mono muted">jobs.lever.co/tigrisdata</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">checked two hours ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >Two roles have matched since June. One is the application
+                      with a screen on Thursday; the other opened three days
+                      ago.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-settled" data-row>
+                  <div class="row-title">Fly.io</div>
+                  <div class="row-meta">
+                    <span class="tag">Ashby</span>
+                    <span class="mono muted">jobs.ashbyhq.com/flydotio</span>
+                    <span class="sep">·</span>
+                    <span class="t-settled">checked at ten this morning</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >Four roles have matched since March. You applied to one
+                      six days ago, and another opened yesterday.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-settled" data-row>
+                  <div class="row-title">Zed Industries</div>
+                  <div class="row-meta">
+                    <span class="tag">Lever</span>
+                    <span class="mono muted">jobs.lever.co/zed</span>
+                    <span class="sep">·</span>
+                    <span class="t-settled">checked at nine this morning</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >Two roles have matched since April. You applied to the
+                      first, and the same posting went up again three weeks
+                      ago.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-settled" data-row>
+                  <div class="row-title">Recurse Center</div>
+                  <div class="row-meta">
+                    <span class="tag">JSON-LD</span>
+                    <span class="mono muted">recurse.com/jobs</span>
+                    <span class="sep">·</span>
+                    <span class="t-settled">checked at eight this morning</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >There is no board API here, so Perch reads the careers
+                      page markup instead. That is enough to notice the role
+                      that went up five days ago. It is not enough to fill a
+                      form, so this one opens in the browser.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-stale" data-row>
+                  <div class="row-title">Warp</div>
+                  <div class="row-meta">
+                    <span class="tag">Greenhouse</span>
+                    <span class="mono muted">boards.greenhouse.io/warp</span>
+                    <span class="sep">·</span>
+                    <span class="t-stale">checked yesterday evening</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >Two roles have matched here. One ended six days ago after
+                      the take-home; the other has been open 213 days.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-stale" data-row>
+                  <div class="row-title">Modal</div>
+                  <div class="row-meta">
+                    <span class="tag">Ashby</span>
+                    <span class="mono muted">jobs.ashbyhq.com/modal</span>
+                    <span class="sep">·</span>
+                    <span class="t-stale">checked yesterday afternoon</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >Three roles have matched since February. You sent one six
+                      weeks ago, one opened twelve days ago, and one has been
+                      up since April.</span
+                    >
+                  </div>
+                </div>
+
+                <div class="row row-tired" data-row>
+                  <div class="row-title">Ramp</div>
+                  <div class="row-meta">
+                    <span class="tag">Greenhouse</span>
+                    <span class="mono muted">boards.greenhouse.io/ramp</span>
+                    <span class="sep">·</span>
+                    <span class="t-tired">checked yesterday morning</span>
+                  </div>
+                  <div class="row-why">
+                    <span
+                      >One role matched in July and you sent it. Nothing since.
+                      A quiet quarter here is ordinary.</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="hint-bar">
+      <span class="hint"
+        ><span class="kbd">j</span> <span class="kbd">k</span> move</span
+      >
+      <span class="hint"><span class="kbd">↵</span> open</span>
+      <span class="hint"><span class="kbd">x</span> stop watching</span>
+      <span class="spacer"></span>
+      <span class="hint"><span class="kbd">⌘K</span> commands</span>
+    </div>
+
+    <script src="perch.js"></script>
+    <script>
+      perchBoot({ active: "Watchlist" });
+    </script>
+  </body>
+</html>

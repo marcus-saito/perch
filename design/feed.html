@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perch: Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="perch.css" />
+
+    <!-- Accent budget for this screen, three exactly:
+       1. the two .t-fresh time signals in Today (both under 24 hours old, so
+          the freshness scale requires them)
+       2. the selection bar on the first row (.row.is-selected::before)
+     No .btn-primary here on purpose: the feed is for reading, and the one
+     primary in the flow lives on the detail pane. The wordmark dot in the
+     rail is shared chrome from perch.js and is on every view. -->
+
+    <style>
+      /* One-off layout only. No colour that is not already a token. */
+      .queue > .row:last-child {
+        border-bottom: 0;
+      }
+      /* keep the one command in the empty state from breaking across lines */
+      .empty-body code {
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div data-rail></div>
+      <div class="stage">
+        <section class="pane">
+          <header class="pane-head">
+            <div
+              class="w-full max-w-[660px] flex items-end justify-between gap-6"
+            >
+              <div>
+                <h1 class="pane-title">Feed</h1>
+                <div class="pane-sub">
+                  Newest first, in the order the boards posted them.
+                </div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="perchSync()">
+                Sync <span class="kbd">s</span>
+              </button>
+            </div>
+          </header>
+
+          <div class="pane-body">
+            <div class="max-w-[660px]">
+              <div
+                class="queue"
+                id="feed-queue"
+                data-queue
+                data-clearable="dismissed"
+              >
+                <div class="section-head">Today</div>
+
+                <article class="row row-fresh" data-row>
+                  <div class="row-company">Oxide Computer</div>
+                  <div class="row-title">
+                    Systems Software Engineer, Control Plane
+                  </div>
+                  <div class="row-meta">
+                    <span>Emeryville, CA</span>
+                    <span class="sep">·</span>
+                    <span class="t-fresh">posted 4 hours ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">watched-company</span>
+                    <span>because you added Oxide in March</span>
+                  </div>
+                </article>
+
+                <article class="row row-fresh" data-row>
+                  <div class="row-company">Astral</div>
+                  <div class="row-title">Rust Engineer, uv</div>
+                  <div class="row-meta">
+                    <span>Remote (US or EU)</span>
+                    <span class="sep">·</span>
+                    <span class="t-fresh">posted 9 hours ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">rust-in-title</span>
+                    <span>because ‘Rust’ is in the title</span>
+                  </div>
+                </article>
+
+                <div class="section-head">This week</div>
+
+                <article class="row row-recent" data-row>
+                  <div class="row-company">Fly.io</div>
+                  <div class="row-title">
+                    Distributed Systems Engineer, Machines
+                  </div>
+                  <div class="row-meta">
+                    <span>Remote (worldwide)</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">posted yesterday</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">systems-keywords</span>
+                    <span
+                      >because the description mentions scheduling,
+                      orchestration, Firecracker</span
+                    >
+                  </div>
+                </article>
+
+                <article class="row row-recent" data-row>
+                  <div class="row-company">Tigris Data</div>
+                  <div class="row-title">Storage Engineer, Replication</div>
+                  <div class="row-meta">
+                    <span>Remote (US)</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">posted 3 days ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">remote-ok</span>
+                    <span>because the location says Remote (US)</span>
+                  </div>
+                </article>
+
+                <article class="row row-recent" data-row>
+                  <div class="row-company">Recurse Center</div>
+                  <div class="row-title">Infrastructure Engineer</div>
+                  <div class="row-meta">
+                    <span>Brooklyn, NY, or remote</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">posted 5 days ago</span>
+                    <span class="sep">·</span>
+                    <span class="muted">opens in browser</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">small-team</span>
+                    <span>because the whole team is eleven people</span>
+                  </div>
+                </article>
+
+                <div class="section-head">Earlier this month</div>
+
+                <article class="row row-settled" data-row>
+                  <div class="row-company">Modal</div>
+                  <div class="row-title">
+                    Backend Engineer, Compute Platform
+                  </div>
+                  <div class="row-meta">
+                    <span>San Francisco</span>
+                    <span class="sep">·</span>
+                    <span class="t-settled">posted 12 days ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">bay-area</span>
+                    <span>because the office is in San Francisco</span>
+                  </div>
+                </article>
+
+                <article class="row row-settled" data-row>
+                  <div class="row-company">Zed Industries</div>
+                  <div class="row-title">
+                    Senior Systems Engineer, Collaboration
+                  </div>
+                  <div class="row-meta">
+                    <span>Remote (US)</span>
+                    <span class="sep">·</span>
+                    <span class="t-settled">reposted 3 weeks ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">not-staff-plus</span>
+                    <span
+                      >because the title says senior, not staff or
+                      principal</span
+                    >
+                  </div>
+                </article>
+
+                <div class="section-head">Older</div>
+
+                <article class="row row-stale" data-row>
+                  <div class="row-company">Sourcegraph</div>
+                  <div class="row-title">
+                    Senior Software Engineer, Search Backend
+                  </div>
+                  <div class="row-meta">
+                    <span>Remote (US)</span>
+                    <span class="sep">·</span>
+                    <span class="t-stale">open 41 days</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">seniority-band</span>
+                    <span>because the posting says senior, not staff</span>
+                  </div>
+                </article>
+
+                <article class="row row-stale" data-row>
+                  <div class="row-company">Cursor</div>
+                  <div class="row-title">
+                    Backend Engineer, Indexing Infrastructure
+                  </div>
+                  <div class="row-meta">
+                    <span>San Francisco</span>
+                    <span class="sep">·</span>
+                    <span class="t-stale">open 68 days</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">systems-keywords</span>
+                    <span
+                      >because the description mentions sharding, caching,
+                      retrieval at scale</span
+                    >
+                  </div>
+                </article>
+
+                <article class="row row-tired" data-row>
+                  <div class="row-company">Warp</div>
+                  <div class="row-title">Software Engineer, Rust Platform</div>
+                  <div class="row-meta">
+                    <span>San Francisco</span>
+                    <span class="sep">·</span>
+                    <span class="t-tired">open 213 days</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">rust-in-title</span>
+                    <span>because ‘Rust’ is in the title</span>
+                  </div>
+                </article>
+              </div>
+
+              <div class="empty" id="feed-empty" style="display: none">
+                <h2 class="empty-title">Nothing new since Tuesday.</h2>
+                <p class="empty-body">
+                  Boards post in bursts. Every watched board was checked eleven
+                  minutes ago. None has opened a role since Tuesday morning.
+                  Three quiet days in a row is ordinary.
+                  <code>watch add &lt;company&gt;</code> puts another board in
+                  the rotation.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="hint-bar">
+      <span class="hint"
+        ><span class="kbd">j</span> <span class="kbd">k</span> move</span
+      >
+      <span class="hint"><span class="kbd">↵</span> open</span>
+      <span class="hint"><span class="kbd">s</span> sync</span>
+      <span class="hint"><span class="kbd">x</span> dismiss</span>
+      <span class="spacer"></span>
+      <span class="hint"><span class="kbd">⌘K</span> commands</span>
+      <span
+        class="muted"
+        style="pointer-events: auto; cursor: pointer"
+        onclick="perchToggleEmpty()"
+        >empty state</span
+      >
+    </div>
+
+    <script src="perch.js"></script>
+    <script>
+      perchBoot({
+        active: "Feed",
+        queue: {
+          onOpen: () => {
+            window.location.href = "detail.html";
+          },
+        },
+      });
+
+      /* Sync is the CLI's word too, so the button and the s key both surface it in the palette. */
+      function perchSync() {
+        window.perchOpenPalette();
+        const input = document.querySelector(".palette-input");
+        input.value = "sync";
+        input.dispatchEvent(new Event("input"));
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "s" || e.metaKey || e.ctrlKey || e.altKey) return;
+        if (document.querySelector(".palette-scrim.is-open")) return;
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName))
+          return;
+        e.preventDefault();
+        perchSync();
+      });
+
+      /* Mockup scaffolding: let a reviewer see the empty feed without editing fixtures. */
+      function perchToggleEmpty() {
+        const queue = document.getElementById("feed-queue");
+        const empty = document.getElementById("feed-empty");
+        const emptyShown = empty.style.display !== "none";
+        empty.style.display = emptyShown ? "none" : "block";
+        queue.style.display = emptyShown ? "flex" : "none";
+      }
+    </script>
+  </body>
+</html>

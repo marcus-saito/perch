@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perch: Detail pane</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="perch.css" />
+
+    <!-- Accent budget for this screen, three exactly:
+       1. the selection bar on the Val Town row (.row.is-selected::before)
+       2. the one primary button (Start application)
+       3. the latest dot in Board history (.timeline-item.is-latest::before)
+     This is the same queue as feed.html, a few days on: nothing in it is
+     under 24 hours old any more, so no .t-fresh signal is spent here. The
+     wordmark dot in the rail is shared chrome from perch.js, on every view. -->
+
+    <style>
+      /* One-off layout only. No colour that is not already a token. */
+      .detail-head {
+        display: block;
+      }
+      /* Without this the pane keeps .pane's display:flex and [hidden] does nothing. */
+      .pane[hidden] {
+        display: none;
+      }
+      .pane-body-detail {
+        padding-bottom: 32px;
+      }
+      .pane-actions {
+        flex: none;
+        border-top: 1px solid var(--rule);
+        background: var(--paper);
+        padding: 16px 32px 46px; /* bottom pad clears the fixed hint bar */
+      }
+      .detail-prose {
+        font-size: var(--t-15);
+        line-height: 1.65;
+        color: var(--ink-2);
+        max-width: 62ch;
+      }
+      .detail-prose p {
+        margin: 0 0 14px;
+      }
+      .detail-prose ul {
+        list-style: disc;
+        margin: 2px 0 0;
+        padding-left: 19px;
+      }
+      .detail-prose li {
+        margin-bottom: 5px;
+      }
+      /* the feed narrows rather than navigating away: same rows, tighter */
+      .pane-feed .pane-body {
+        padding-left: 22px;
+        padding-right: 18px;
+      }
+      .pane-feed .row {
+        padding-top: 14px;
+        padding-bottom: 14px;
+      }
+      /* the why line has to wrap at this width rather than push the pane wide */
+      .pane-feed .row-why {
+        flex-wrap: wrap;
+        row-gap: 3px;
+      }
+      .queue > .row:last-child {
+        border-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div data-rail></div>
+
+      <div class="stage has-detail" id="stage">
+        <!-- ============ LEFT: the feed, narrowed ============ -->
+        <section class="pane pane-feed">
+          <header class="pane-head tight">
+            <div>
+              <h1 class="pane-title">Feed</h1>
+              <div class="pane-sub">
+                Newest first, in the order the boards posted them.
+              </div>
+            </div>
+          </header>
+
+          <div class="pane-body pad-top">
+            <div class="queue" data-queue data-clearable="dismissed">
+              <div class="section-head">This week</div>
+
+              <article class="row row-recent is-selected" data-row>
+                <div class="row-company">Val Town</div>
+                <div class="row-title">Systems Engineer, Runtime</div>
+                <div class="row-meta">
+                  <span>Remote (US) or Brooklyn</span>
+                  <span class="sep">·</span>
+                  <span class="t-recent">posted 2 days ago</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">systems-keywords</span>
+                  <span
+                    >because the description mentions isolates, sandboxing</span
+                  >
+                </div>
+              </article>
+
+              <article class="row row-recent" data-row>
+                <div class="row-company">Oxide Computer</div>
+                <div class="row-title">
+                  Systems Software Engineer, Control Plane
+                </div>
+                <div class="row-meta">
+                  <span>Emeryville, CA</span>
+                  <span class="sep">·</span>
+                  <span class="t-recent">posted 3 days ago</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">watched-company</span>
+                  <span>because you added Oxide in March</span>
+                </div>
+              </article>
+
+              <article class="row row-recent" data-row>
+                <div class="row-company">Astral</div>
+                <div class="row-title">Rust Engineer, uv</div>
+                <div class="row-meta">
+                  <span>Remote (US or EU)</span>
+                  <span class="sep">·</span>
+                  <span class="t-recent">posted 3 days ago</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">rust-in-title</span>
+                  <span>because &lsquo;Rust&rsquo; is in the title</span>
+                </div>
+              </article>
+
+              <article class="row row-recent" data-row>
+                <div class="row-company">Fly.io</div>
+                <div class="row-title">
+                  Distributed Systems Engineer, Machines
+                </div>
+                <div class="row-meta">
+                  <span>Remote (worldwide)</span>
+                  <span class="sep">·</span>
+                  <span class="t-recent">posted 4 days ago</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">systems-keywords</span>
+                  <span
+                    >because the description mentions scheduling, orchestration,
+                    Firecracker</span
+                  >
+                </div>
+              </article>
+
+              <article class="row row-recent" data-row>
+                <div class="row-company">Tigris Data</div>
+                <div class="row-title">Storage Engineer, Replication</div>
+                <div class="row-meta">
+                  <span>Remote (US)</span>
+                  <span class="sep">·</span>
+                  <span class="t-recent">posted 6 days ago</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">remote-ok</span>
+                  <span>because the location says Remote (US)</span>
+                </div>
+              </article>
+
+              <div class="section-head">Earlier this month</div>
+
+              <article class="row row-settled" data-row>
+                <div class="row-company">Recurse Center</div>
+                <div class="row-title">Infrastructure Engineer</div>
+                <div class="row-meta">
+                  <span>Brooklyn, NY, or remote</span>
+                  <span class="sep">·</span>
+                  <span class="t-settled">posted 8 days ago</span>
+                  <span class="sep">·</span>
+                  <span class="muted">opens in browser</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">small-team</span>
+                  <span>because the whole team is eleven people</span>
+                </div>
+              </article>
+
+              <article class="row row-settled" data-row>
+                <div class="row-company">Modal</div>
+                <div class="row-title">Backend Engineer, Compute Platform</div>
+                <div class="row-meta">
+                  <span>San Francisco</span>
+                  <span class="sep">·</span>
+                  <span class="t-settled">posted 2 weeks ago</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">bay-area</span>
+                  <span>because the office is in San Francisco</span>
+                </div>
+              </article>
+
+              <article class="row row-settled" data-row>
+                <div class="row-company">Zed Industries</div>
+                <div class="row-title">
+                  Senior Systems Engineer, Collaboration
+                </div>
+                <div class="row-meta">
+                  <span>Remote (US)</span>
+                  <span class="sep">·</span>
+                  <span class="t-settled">reposted 3 weeks ago</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">not-staff-plus</span>
+                  <span
+                    >because the title says senior, not staff or principal</span
+                  >
+                </div>
+              </article>
+
+              <div class="section-head">Older</div>
+
+              <article class="row row-stale" data-row>
+                <div class="row-company">Sourcegraph</div>
+                <div class="row-title">
+                  Senior Software Engineer, Search Backend
+                </div>
+                <div class="row-meta">
+                  <span>Remote (US)</span>
+                  <span class="sep">·</span>
+                  <span class="t-stale">open 44 days</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">seniority-band</span>
+                  <span>because the posting says senior, not staff</span>
+                </div>
+              </article>
+
+              <article class="row row-stale" data-row>
+                <div class="row-company">Cursor</div>
+                <div class="row-title">
+                  Backend Engineer, Indexing Infrastructure
+                </div>
+                <div class="row-meta">
+                  <span>San Francisco</span>
+                  <span class="sep">·</span>
+                  <span class="t-stale">open 71 days</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">systems-keywords</span>
+                  <span
+                    >because the description mentions sharding, caching,
+                    retrieval at scale</span
+                  >
+                </div>
+              </article>
+
+              <article class="row row-tired" data-row>
+                <div class="row-company">Warp</div>
+                <div class="row-title">Software Engineer, Rust Platform</div>
+                <div class="row-meta">
+                  <span>San Francisco</span>
+                  <span class="sep">·</span>
+                  <span class="t-tired">open 216 days</span>
+                </div>
+                <div class="row-why">
+                  <span>matched</span>
+                  <span class="rule-name">rust-in-title</span>
+                  <span>because &lsquo;Rust&rsquo; is in the title</span>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ RIGHT: the detail ============ -->
+        <section class="pane" id="detail">
+          <header class="pane-head detail-head">
+            <div class="row-company">Val Town</div>
+            <h2 class="pane-title" style="margin-top: 3px">
+              Systems Engineer, Runtime
+            </h2>
+            <div class="row-meta" style="margin-top: 9px">
+              <span>Remote (US) or Brooklyn</span>
+              <span class="sep">·</span>
+              <span class="t-recent">posted 2 days ago</span>
+              <span class="sep">·</span>
+              <span class="tag">Ashby</span>
+            </div>
+          </header>
+
+          <div class="pane-body pane-body-detail">
+            <div class="section-head">What they wrote</div>
+            <div class="detail-prose">
+              <p>
+                Val Town runs JavaScript that strangers write in a browser and
+                expect to be live a second later. The team that owns that path
+                is four people. You would be the fifth.
+              </p>
+
+              <p>
+                Today a val runs in a Deno process behind a pool of warm
+                workers. It works, and it is expensive in both directions: we
+                hold memory open for people who may never come back, and a cold
+                start in a region we have not pre-warmed still costs most of a
+                second. We are moving execution onto isolates we control,
+                written in Rust, so that a val can start in single-digit
+                milliseconds and be billed for the milliseconds it actually
+                used.
+              </p>
+
+              <p>
+                That work is mostly unglamorous. A snapshot format. A scheduler
+                with an opinion about which code is likely to be called next.
+                Syscall filtering strict enough that calling it a sandbox is
+                honest. And a real answer for the handful of npm packages that
+                reach for things a sandbox will not hand them.
+              </p>
+
+              <p>
+                We are not asking that you have built a runtime before. We are
+                asking that you are comfortable reading someone else's runtime
+                source at two in the morning and coming away with an opinion
+                about it.
+              </p>
+
+              <p style="margin-bottom: 6px">What we are looking for:</p>
+              <ul>
+                <li>
+                  Rust in production, or C++ or Go and a real willingness to
+                  write Rust daily
+                </li>
+                <li>
+                  Some prior contact with V8, Deno, Bun, Wasm, or a container
+                  runtime
+                </li>
+                <li>
+                  Comfort down at the operating system — seccomp, cgroups,
+                  namespaces, page cache behaviour
+                </li>
+                <li>
+                  A preference for reading source over reading documentation
+                </li>
+              </ul>
+            </div>
+
+            <div class="section-head">Board history</div>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-when">first seen in June</div>
+                <div class="timeline-what">
+                  On Val Town's Ashby board, under a different title.
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-when">two weeks ago</div>
+                <div class="timeline-what">Retitled from Runtime Engineer.</div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-when">eight days ago</div>
+                <div class="timeline-what">
+                  Came off the board. It stayed off for six days.
+                </div>
+              </div>
+              <div class="timeline-item is-latest">
+                <div class="timeline-when">two days ago</div>
+                <div class="timeline-what">
+                  Reposted with the same description and a new posting date. The
+                  feed treats it as two days old.
+                </div>
+              </div>
+            </div>
+            <p
+              class="muted"
+              style="font-size: var(--t-12); margin: 2px 0 0; max-width: 56ch"
+            >
+              Perch has watched this board since June. Nothing before that is
+              here.
+            </p>
+
+            <div class="section-head">Hiring velocity</div>
+            <!-- This whole section is absent when Perch has watched a board too briefly
+             to say anything. No zeroes, no "not enough data" placeholder, no empty
+             chart. Recurse Center, watched since July, has no such section. -->
+            <div class="stat">
+              <span class="n">4</span> roles opened on this board in the last 90
+              days, two of them still open.
+            </div>
+            <div class="stat" style="margin-top: 10px">
+              <span class="n">41</span> days, median, from a role appearing to
+              it leaving the board.
+            </div>
+            <p
+              class="muted"
+              style="font-size: var(--t-12); margin: 14px 0 0; max-width: 56ch"
+            >
+              Observed from the board, not reported by the company. A role can
+              leave because it was filled, or because someone tidied up. Perch
+              cannot tell those apart. These numbers are approximate.
+            </p>
+          </div>
+
+          <div class="pane-actions flex items-center gap-2">
+            <a class="btn btn-primary" href="apply.html"
+              >Start application <span class="kbd">↵</span></a
+            >
+            <button class="btn btn-ghost" type="button" id="dismiss">
+              Dismiss <span class="kbd">x</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="hint-bar">
+      <span class="hint"
+        ><span class="kbd">j</span> <span class="kbd">k</span> move</span
+      >
+      <span class="hint"><span class="kbd">↵</span> open</span>
+      <span class="hint"><span class="kbd">x</span> dismiss</span>
+      <span class="hint"><span class="kbd">esc</span> close pane</span>
+      <span class="spacer"></span>
+      <span class="hint"><span class="kbd">⌘K</span> commands</span>
+    </div>
+
+    <script src="perch.js"></script>
+    <script>
+      const stage = document.getElementById("stage");
+      const detail = document.getElementById("detail");
+
+      function openDetail() {
+        detail.hidden = false;
+        stage.classList.add("has-detail");
+      }
+      function closeDetail() {
+        stage.classList.remove("has-detail");
+        detail.hidden = true;
+      }
+
+      perchBoot({
+        active: "Feed",
+        queue: {
+          // Mockup: every row opens the one detail we have written out.
+          onOpen: openDetail,
+          // Setting the row aside closes the pane that was showing it; returning
+          // nothing leaves the collapse-and-undo to perch.js.
+          onSetAside: closeDetail,
+        },
+      });
+
+      // Esc narrows back to the full-width feed. Palette Esc wins while it is open.
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        if (document.querySelector(".palette-scrim.is-open")) return;
+        if (stage.classList.contains("has-detail")) closeDetail();
+      });
+
+      // The Dismiss button is the x key. One behaviour, defined once in perch.js.
+      document.getElementById("dismiss").addEventListener("click", () => {
+        document.activeElement.blur();
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "x" }));
+      });
+    </script>
+  </body>
+</html>

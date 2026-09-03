@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perch design review</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="perch.css">
+<style>
+  .sheet { max-width: 760px; margin: 0 auto; padding: 88px 32px 120px; }
+  .view-link {
+    display: block; text-decoration: none; color: inherit;
+    padding: 18px 20px; border: 1px solid var(--rule); border-radius: 8px;
+    background: var(--paper-raised); margin-bottom: 10px;
+    transition: border-color .12s ease, transform .12s ease;
+  }
+  .view-link:hover { border-color: var(--rule-strong); transform: translateY(-1px); }
+  .view-link h2 {
+    font-family: var(--font-text); font-size: var(--t-21); font-weight: 500;
+    margin: 0 0 4px; letter-spacing: -0.012em;
+  }
+  .view-link p { margin: 0; font-size: var(--t-13); color: var(--ink-3); line-height: 1.6; }
+  .view-link .file { font-family: var(--font-mono); font-size: var(--t-11); color: var(--ink-4); }
+  .lede { font-size: var(--t-17); line-height: 1.7; color: var(--ink-2); max-width: 60ch; }
+  .lede + .lede { margin-top: 18px; }
+  .principle { display: flex; gap: 14px; padding: 9px 0; font-size: var(--t-13); color: var(--ink-2); }
+  .principle b { color: var(--ink); font-weight: 500; min-width: 148px; flex: none; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div style="display:flex;align-items:baseline;justify-content:space-between">
+    <div class="wordmark" style="padding-left:0; font-size:var(--t-21)">Perch<span class="dot"></span></div>
+    <button class="btn btn-ghost btn-sm" onclick="perchToggleTheme()">light / dark</button>
+  </div>
+
+  <h1 style="font-family:var(--font-text);font-size:var(--t-34);font-weight:500;letter-spacing:-0.02em;margin:0 0 18px;line-height:1.15">
+    Design review
+  </h1>
+
+  <p class="lede">
+    Seven static mockups, no build step. Open any file directly in a browser.
+    <span class="mono" style="font-size:var(--t-13)">perch.css</span> holds the
+    whole visual language and
+    <span class="mono" style="font-size:var(--t-13)">perch.js</span> holds the
+    keyboard layer, so the views agree with each other.
+  </p>
+
+  <p class="lede">
+    Every screen has a working <span class="kbd">⌘K</span> palette and live
+    <span class="kbd">j</span> <span class="kbd">k</span> navigation. Click the
+    line reading <span class="muted">“everything stays on this Mac”</span> at
+    the bottom of the rail to flip between light and dark.
+  </p>
+
+  <div class="section-head">The views</div>
+
+  <a class="view-link" href="feed.html">
+    <h2>Feed <span class="file">feed.html</span></h2>
+    <p>Reverse-chronological matched roles. Age is the only hierarchy: fresh
+       reads warm and full-strength, a role open 200 days reads tired. Each row
+       names the rule that fired. No scores, no badges. Toggle the empty state
+       from the hint bar.</p>
+  </a>
+
+  <a class="view-link" href="detail.html">
+    <h2>Detail pane <span class="file">detail.html</span></h2>
+    <p>Opens beside the feed; the queue narrows rather than disappearing.
+       Description, observed board history, hiring velocity with its caveat, and
+       exactly two actions.</p>
+  </a>
+
+  <a class="view-link" href="applications.html">
+    <h2>Applications <span class="file">applications.html</span></h2>
+    <p>Three groups, not a table. A rejection gets the same calm row as
+       everything else. Silence past thirty days archives itself, and the screen
+       says so once.</p>
+  </a>
+
+  <a class="view-link" href="watchlist.html">
+    <h2>Watchlist <span class="file">watchlist.html</span></h2>
+    <p>Watched companies with detected ATS, including the case where there
+       is no board API and Perch reads the careers page instead. Monitor
+       broadly, fill narrowly. Stated in words, never a badge.</p>
+  </a>
+
+  <a class="view-link" href="profile.html">
+    <h2>Profile <span class="file">profile.html</span></h2>
+    <p>Fields backed by a human-editable <span class="mono">profile.toml</span>,
+       document variants, and the model section. “No model at all” is presented
+       as a complete way to use Perch, and pointing at a remote endpoint asks
+       for consent at the point of use.</p>
+  </a>
+
+  <a class="view-link" href="apply.html">
+    <h2>Application flow <span class="file">apply.html</span></h2>
+    <p>Three steps: review fields → attach documents → open in webview. Filled
+       fields carry provenance, unknowable fields stay visibly blank, and the
+       cover letter is conspicuously empty by design. The flow ends at “Open in
+       browser”. There is no submit primitive.</p>
+  </a>
+
+  <a class="view-link" href="import.html">
+    <h2>Résumé import review <span class="file">import.html</span></h2>
+    <p>A diff. Every proposed field shows the source span it anchors to. One
+       field fails verification and is not offered. Nothing reaches the profile
+       without an explicit accept.</p>
+  </a>
+
+  <div class="section-head">What the design commits to</div>
+
+  <div class="principle"><b>One queue, one pane</b>
+    <span>No dashboard, no home screen, no widgets. The feed is the app; everything else is a different queue in the same shape.</span></div>
+  <div class="principle"><b>Time, not score</b>
+    <span>Perch does not score a match. It reports how old a posting is, in plain language.</span></div>
+  <div class="principle"><b>One accent</b>
+    <span>Terracotta, at most three times per screen. Warm means recent. Everything else is four steps of warm grey on paper.</span></div>
+  <div class="principle"><b>Keyboard first</b>
+    <span><span class="kbd">j</span> <span class="kbd">k</span> <span class="kbd">↵</span> <span class="kbd">x</span> and a palette whose vocabulary is the CLI's vocabulary, verbatim.</span></div>
+  <div class="principle"><b>Nothing flinches</b>
+    <span>Empty states, rejections, archived applications, and unsupported boards all get the same ordinary treatment. This is a tool someone opens on a bad Tuesday.</span></div>
+  <div class="principle"><b>No submit</b>
+    <span>The fill layer has no submit primitive. The UI cannot offer a button the program does not have.</span></div>
+
+</div>
+<script src="perch.js"></script>
+<script>perchTheme(); perchPalette();</script>
+</body>
+</html>

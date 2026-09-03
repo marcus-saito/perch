@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perch: Applications</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="perch.css" />
+    <style>
+      /* three one-off rules for this view */
+      .note {
+        font-size: var(--t-12);
+        color: var(--ink-3);
+        line-height: 1.65;
+        max-width: 56ch;
+        margin: 0 0 16px;
+        padding: 2px 0 0 18px;
+      }
+      /* the last row on the page, not the last of every group */
+      #archived-queue > .row:last-child {
+        border-bottom: 0;
+      }
+      /* what Enter reveals: the one paragraph Perch holds about an application */
+      .row-open {
+        font-size: var(--t-12);
+        color: var(--ink-3);
+        line-height: 1.65;
+        margin-top: 10px;
+        padding-top: 9px;
+        border-top: 1px solid var(--rule);
+        max-width: 56ch;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div data-rail></div>
+      <div class="stage">
+        <section class="pane">
+          <header class="pane-head">
+            <div
+              class="w-full max-w-[620px] flex items-end justify-between gap-6"
+            >
+              <div>
+                <h1 class="pane-title">Applications</h1>
+                <div class="pane-sub">
+                  What you have sent, and what has come back so far.
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                onclick="perchRecord()"
+              >
+                Record a reply <span class="kbd">r</span>
+              </button>
+            </div>
+          </header>
+
+          <div class="pane-body">
+            <div class="max-w-[620px]">
+              <div class="section-head">In flight</div>
+
+              <div class="queue" data-queue data-clearable="archived">
+                <article
+                  class="row row-fresh"
+                  data-row
+                  data-detail="Sent through the Val Town board on Ashby with resume-systems.pdf and a four-line letter."
+                >
+                  <div class="row-company">Val Town</div>
+                  <div class="row-title">Platform Engineer, Vals</div>
+                  <div class="row-meta">
+                    <span class="t-fresh">applied last night</span>
+                    <span class="sep">·</span>
+                    <span
+                      >no confirmation yet; Ashby boards do not always send
+                      one</span
+                    >
+                  </div>
+                </article>
+
+                <article
+                  class="row row-recent"
+                  data-row
+                  data-detail="Sent through the Fly.io board on Ashby with resume-systems.pdf. The posting is still up."
+                >
+                  <div class="row-company">Fly.io</div>
+                  <div class="row-title">Systems Engineer, Machines</div>
+                  <div class="row-meta">
+                    <span class="t-recent">applied 6 days ago</span>
+                    <span class="sep">·</span>
+                    <span>confirmation email, same day</span>
+                  </div>
+                </article>
+
+                <article
+                  class="row row-settled"
+                  data-row
+                  data-detail="Sent through the Oxide board on Lever with resume-systems.pdf. The posting has been open 143 days."
+                >
+                  <div class="row-company">Oxide Computer</div>
+                  <div class="row-title">Software Engineer, Control Plane</div>
+                  <div class="row-meta">
+                    <span class="t-settled">applied 3 weeks ago</span>
+                    <span class="sep">·</span>
+                    <span
+                      >confirmation email, same hour, and nothing since</span
+                    >
+                  </div>
+                </article>
+
+                <article
+                  class="row row-settled"
+                  data-row
+                  data-detail="Sent through the Sourcegraph board on Greenhouse with resume-systems.pdf. No confirmation was sent."
+                >
+                  <div class="row-company">Sourcegraph</div>
+                  <div class="row-title">Senior Backend Engineer, Search</div>
+                  <div class="row-meta">
+                    <span class="t-settled">applied 24 days ago</span>
+                    <span class="sep">·</span>
+                    <span>nothing since</span>
+                  </div>
+                </article>
+              </div>
+
+              <div class="section-head">Responded</div>
+
+              <div class="queue" data-queue data-clearable="archived">
+                <article
+                  class="row row-settled"
+                  data-row
+                  data-detail="Thirty minutes, video, with the engineering manager. You recorded this reply on Monday."
+                >
+                  <div class="row-company">Tigris Data</div>
+                  <div class="row-title">Distributed Systems Engineer</div>
+                  <div class="row-meta">
+                    <span class="t-settled">applied 18 days ago</span>
+                    <span class="sep">·</span>
+                    <span>recruiter screen scheduled for Thursday, 11am</span>
+                  </div>
+                </article>
+
+                <article
+                  class="row row-settled"
+                  data-row
+                  data-detail="A form no, by email, four days after the take-home went back. You recorded it the same morning."
+                >
+                  <div class="row-company">Warp</div>
+                  <div class="row-title">
+                    Backend Engineer, Terminal Infrastructure
+                  </div>
+                  <div class="row-meta">
+                    <span class="t-settled">applied 22 days ago</span>
+                    <span class="sep">·</span>
+                    <span>a no after the take-home, 6 days ago</span>
+                  </div>
+                </article>
+              </div>
+
+              <div class="section-head">Archived</div>
+
+              <p class="note">
+                After 30 days without a reply, Perch moves an application here
+                on its own, or you can archive one yourself with
+                <span class="kbd">x</span>. Nothing is deleted. An archived
+                application still opens like any other, and recording a reply
+                moves it back up.
+              </p>
+
+              <div class="queue" id="archived-queue" data-queue>
+                <article
+                  class="row row-stale"
+                  data-row
+                  data-detail="Sent through the Modal board on Ashby with resume-systems.pdf. The posting is still up."
+                >
+                  <div class="row-company">Modal</div>
+                  <div class="row-title">Systems Engineer, Compute</div>
+                  <div class="row-meta">
+                    <span class="t-stale">applied 6 weeks ago</span>
+                    <span class="sep">·</span>
+                    <span>no reply in 30 days</span>
+                  </div>
+                </article>
+
+                <article
+                  class="row row-stale"
+                  data-row
+                  data-detail="Sent through the Ramp board on Greenhouse with resume-platform.pdf. Confirmation email, same day."
+                >
+                  <div class="row-company">Ramp</div>
+                  <div class="row-title">Senior Backend Engineer, Payments</div>
+                  <div class="row-meta">
+                    <span class="t-stale">applied 7 weeks ago</span>
+                    <span class="sep">·</span>
+                    <span>no reply in 30 days</span>
+                  </div>
+                </article>
+
+                <article
+                  class="row row-stale"
+                  data-row
+                  data-detail="Sent through the Astral board on Ashby with resume-systems.pdf. The posting came down in July."
+                >
+                  <div class="row-company">Astral</div>
+                  <div class="row-title">Software Engineer, Rust Tooling</div>
+                  <div class="row-meta">
+                    <span class="t-stale">applied 2 months ago</span>
+                    <span class="sep">·</span>
+                    <span
+                      >no reply in 30 days; the posting came down in July</span
+                    >
+                  </div>
+                </article>
+
+                <article
+                  class="row row-tired"
+                  data-row
+                  data-detail="Sent through the Cursor board on Greenhouse with resume-platform.pdf. Confirmation email, same day."
+                >
+                  <div class="row-company">Cursor</div>
+                  <div class="row-title">Backend Engineer, Indexing</div>
+                  <div class="row-meta">
+                    <span class="t-tired">applied in May</span>
+                    <span class="sep">·</span>
+                    <span>no reply in 30 days</span>
+                  </div>
+                </article>
+
+                <article
+                  class="row row-tired"
+                  data-row
+                  data-detail="Sent through the Zed board on Lever with resume-systems.pdf. No confirmation was sent."
+                >
+                  <div class="row-company">Zed Industries</div>
+                  <div class="row-title">
+                    Senior Systems Engineer, Collaboration
+                  </div>
+                  <div class="row-meta">
+                    <span class="t-tired">applied in April</span>
+                    <span class="sep">·</span>
+                    <span>no reply in 30 days</span>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="hint-bar">
+      <span class="hint"
+        ><span class="kbd">j</span> <span class="kbd">k</span> move</span
+      >
+      <span class="hint"><span class="kbd">↵</span> open</span>
+      <span class="hint"><span class="kbd">r</span> record a reply</span>
+      <span class="hint"><span class="kbd">x</span> archive</span>
+      <span class="spacer"></span>
+      <span class="hint"><span class="kbd">⌘K</span> commands</span>
+    </div>
+
+    <script src="perch.js"></script>
+    <script>
+      /* Enter opens, the same as everywhere else: select the application and
+         show the one paragraph Perch holds about it. */
+      function perchOpen(row) {
+        if (!row || !row.dataset.detail) return;
+        document.querySelectorAll(".row-open").forEach((d) => d.remove());
+        const open = document.createElement("div");
+        open.className = "row-open";
+        open.textContent = row.dataset.detail;
+        row.appendChild(open);
+        row.scrollIntoView({ block: "nearest" });
+      }
+
+      /* Recording a reply has its own key. It surfaces `apps mark` in the
+         palette, which is the CLI's word for this. */
+      function perchRecord() {
+        window.perchOpenPalette();
+        const input = document.querySelector(".palette-input");
+        input.value = "apps mark";
+        input.dispatchEvent(new Event("input"));
+      }
+
+      /* x moves the row down into Archived rather than hiding it: same list,
+         quieter type, a trailing line that reads like its new neighbours.
+         The returned function puts it back where it was. */
+      function perchArchive(row) {
+        const home = row.closest("[data-queue]");
+        const after = row.nextElementSibling;
+        const signal = row.querySelector(".row-meta > span");
+        const trailing = row.querySelector(".row-meta > span:last-child");
+        const wasRow = row.className;
+        const wasSignal = signal.className;
+        const wasTrailing = trailing.textContent;
+
+        row.className = "row row-stale";
+        signal.className = "t-stale";
+        trailing.textContent = "archived by hand, just now";
+        document.getElementById("archived-queue").appendChild(row);
+        /* It is not set aside, it lives here now. j/k should still reach it. */
+        row.dataset.setAside = "";
+        row.scrollIntoView({ block: "nearest" });
+
+        return () => {
+          row.className = wasRow;
+          signal.className = wasSignal;
+          trailing.textContent = wasTrailing;
+          home.insertBefore(row, after);
+          row.scrollIntoView({ block: "nearest" });
+        };
+      }
+
+      perchBoot({
+        active: "Applications",
+        queue: {
+          onOpen: perchOpen,
+          onSetAside: perchArchive,
+          keys: { r: perchRecord },
+        },
+      });
+    </script>
+  </body>
+</html>

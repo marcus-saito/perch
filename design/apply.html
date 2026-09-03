@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perch: Apply</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="perch.css" />
+
+    <!-- Accent budget for this screen, one:
+       1. the .btn-primary in the sheet foot (Continue, then Open in browser)
+     The feed behind the scrim is the same queue as detail.html, on the same
+     day: nothing in it is under 24 hours old, so no .t-fresh is spent, and no
+     row is selected. Provenance markers are plain .prov, because
+     .prov.from-profile puts an accent dot on every line it touches, and
+     there are eight of them.
+     The wordmark dot in the rail is shared chrome from perch.js, on every
+     view. The flagged fields are --caution, which is not the accent. -->
+
+    <style>
+      /* One-off layout for the application sheet. Tokens only, no new colours. */
+      .sheet-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* the bottom pad keeps the sheet clear of the fixed hint bar */
+        padding: 4vh 24px 54px;
+        background: color-mix(in srgb, var(--ink) 16%, transparent);
+        backdrop-filter: blur(2px);
+      }
+      /* In dark mode --ink is the light step, so the scrim has to be darkened
+         by hand, the same way perch.css darkens the palette scrim. */
+      :root[data-theme="dark"] .sheet-scrim,
+      html.dark .sheet-scrim {
+        background: rgba(0, 0, 0, 0.5);
+      }
+      .sheet {
+        width: 720px;
+        max-width: 100%;
+        max-height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: var(--paper-raised);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        box-shadow: var(--shadow-float);
+        overflow: hidden;
+      }
+      .sheet-head {
+        flex: none;
+        padding: 22px 30px 17px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .sheet-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px 30px 34px;
+      }
+      .sheet-foot {
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 22px 14px 16px;
+        border-top: 1px solid var(--rule);
+        background: var(--paper);
+      }
+      /* The role title in the sheet head is a role title, so it is the serif. */
+      .sheet-title {
+        font-family: var(--font-text);
+        font-size: var(--t-21);
+        font-weight: 500;
+        letter-spacing: -0.012em;
+        line-height: 1.2;
+        margin: 3px 0 0;
+      }
+      .step-marks {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 14px;
+      }
+      .step-mark {
+        border: 0;
+        background: none;
+        padding: 0;
+        font-family: inherit;
+        font-size: var(--t-12);
+        letter-spacing: 0.01em;
+        color: var(--ink-4);
+        cursor: pointer;
+      }
+      .step-mark.is-on {
+        color: var(--ink);
+      }
+      .step-mark:hover {
+        color: var(--ink-2);
+      }
+      .step-mark.is-on:hover {
+        color: var(--ink);
+      }
+      .step-sep {
+        color: var(--ink-4);
+        font-size: var(--t-12);
+      }
+      .step-panel {
+        display: none;
+      }
+      .step-panel.is-on {
+        display: block;
+      }
+      .section-head.tight {
+        padding-top: 6px;
+      }
+      .note {
+        font-size: var(--t-12);
+        color: var(--ink-3);
+        line-height: 1.6;
+      }
+      .lede {
+        font-size: var(--t-15);
+        color: var(--ink-2);
+        line-height: 1.62;
+        margin: 0;
+      }
+      .doc-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        width: 100%;
+        text-align: left;
+        padding: 12px 14px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--paper-raised);
+        color: var(--ink);
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .doc-row + .doc-row {
+        margin-top: 8px;
+      }
+      .doc-row:hover {
+        background: var(--paper-sunk);
+      }
+      .doc-row.is-on {
+        background: var(--paper-sunk);
+        border-color: var(--rule-strong);
+      }
+      .doc-mark {
+        flex: none;
+        width: 13px;
+        height: 13px;
+        margin-top: 4px;
+        border-radius: 50%;
+        border: 1px solid var(--rule-strong);
+        background: var(--paper);
+      }
+      .doc-row.is-on .doc-mark {
+        border-color: var(--ink-2);
+        background: var(--ink);
+        box-shadow: inset 0 0 0 2px var(--paper-sunk);
+      }
+      .doc-name {
+        font-family: var(--font-mono);
+        font-size: var(--t-13);
+        color: var(--ink);
+      }
+      .plan {
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--paper-sunk);
+        overflow: hidden;
+      }
+      .plan-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 12px;
+        padding: 9px 14px;
+        border-bottom: 1px solid var(--rule);
+        font-family: var(--font-mono);
+        font-size: var(--t-12);
+        color: var(--ink-2);
+      }
+      .plan-row:last-child {
+        border-bottom: 0;
+      }
+      .plan-row .arrow {
+        color: var(--ink-4);
+      }
+      .plan-row .val {
+        color: var(--ink);
+      }
+      .plan-row .prov {
+        margin-left: auto;
+      }
+      .hint-bar {
+        z-index: 60;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div data-rail></div>
+      <div class="stage">
+        <!-- The feed as it stands behind the sheet, scrolled to the Val Town row.
+             Static and dimmed: the sheet has the screen. -->
+        <section class="pane">
+          <header class="pane-head">
+            <div>
+              <h1 class="pane-title">Feed</h1>
+              <div class="pane-sub">
+                Newest first, in the order the boards posted them.
+              </div>
+            </div>
+          </header>
+
+          <div class="pane-body">
+            <div class="max-w-[660px]">
+              <div class="queue">
+                <div class="section-head">This week</div>
+
+                <article class="row row-recent">
+                  <div class="row-company">Val Town</div>
+                  <div class="row-title">Systems Engineer, Runtime</div>
+                  <div class="row-meta">
+                    <span>Remote (US) or Brooklyn</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">posted 2 days ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">systems-keywords</span>
+                    <span
+                      >because the description mentions isolates, sandboxing</span
+                    >
+                  </div>
+                </article>
+
+                <article class="row row-recent">
+                  <div class="row-company">Oxide Computer</div>
+                  <div class="row-title">
+                    Systems Software Engineer, Control Plane
+                  </div>
+                  <div class="row-meta">
+                    <span>Emeryville, CA</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">posted 3 days ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">watched-company</span>
+                    <span>because you added Oxide in March</span>
+                  </div>
+                </article>
+
+                <article class="row row-recent">
+                  <div class="row-company">Astral</div>
+                  <div class="row-title">Rust Engineer, uv</div>
+                  <div class="row-meta">
+                    <span>Remote (US or EU)</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">posted 3 days ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">rust-in-title</span>
+                    <span>because &lsquo;Rust&rsquo; is in the title</span>
+                  </div>
+                </article>
+
+                <article class="row row-recent">
+                  <div class="row-company">Fly.io</div>
+                  <div class="row-title">
+                    Distributed Systems Engineer, Machines
+                  </div>
+                  <div class="row-meta">
+                    <span>Remote (worldwide)</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">posted 4 days ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">systems-keywords</span>
+                    <span
+                      >because the description mentions scheduling,
+                      orchestration, Firecracker</span
+                    >
+                  </div>
+                </article>
+
+                <article class="row row-recent">
+                  <div class="row-company">Tigris Data</div>
+                  <div class="row-title">Storage Engineer, Replication</div>
+                  <div class="row-meta">
+                    <span>Remote (US)</span>
+                    <span class="sep">·</span>
+                    <span class="t-recent">posted 6 days ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">remote-ok</span>
+                    <span>because the location says Remote (US)</span>
+                  </div>
+                </article>
+
+                <div class="section-head">Earlier this month</div>
+
+                <article class="row row-settled">
+                  <div class="row-company">Recurse Center</div>
+                  <div class="row-title">Infrastructure Engineer</div>
+                  <div class="row-meta">
+                    <span>Brooklyn, NY, or remote</span>
+                    <span class="sep">·</span>
+                    <span class="t-settled">posted 8 days ago</span>
+                    <span class="sep">·</span>
+                    <span class="muted">opens in browser</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">small-team</span>
+                    <span>because the whole team is eleven people</span>
+                  </div>
+                </article>
+
+                <article class="row row-settled">
+                  <div class="row-company">Modal</div>
+                  <div class="row-title">
+                    Backend Engineer, Compute Platform
+                  </div>
+                  <div class="row-meta">
+                    <span>San Francisco</span>
+                    <span class="sep">·</span>
+                    <span class="t-settled">posted 2 weeks ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">bay-area</span>
+                    <span>because the office is in San Francisco</span>
+                  </div>
+                </article>
+
+                <article class="row row-settled">
+                  <div class="row-company">Zed Industries</div>
+                  <div class="row-title">
+                    Senior Systems Engineer, Collaboration
+                  </div>
+                  <div class="row-meta">
+                    <span>Remote (US)</span>
+                    <span class="sep">·</span>
+                    <span class="t-settled">reposted 3 weeks ago</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">not-staff-plus</span>
+                    <span
+                      >because the title says senior, not staff or principal</span
+                    >
+                  </div>
+                </article>
+
+                <div class="section-head">Older</div>
+
+                <article class="row row-stale">
+                  <div class="row-company">Sourcegraph</div>
+                  <div class="row-title">
+                    Senior Software Engineer, Search Backend
+                  </div>
+                  <div class="row-meta">
+                    <span>Remote (US)</span>
+                    <span class="sep">·</span>
+                    <span class="t-stale">open 44 days</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">seniority-band</span>
+                    <span>because the posting says senior, not staff</span>
+                  </div>
+                </article>
+
+                <article class="row row-stale">
+                  <div class="row-company">Cursor</div>
+                  <div class="row-title">
+                    Backend Engineer, Indexing Infrastructure
+                  </div>
+                  <div class="row-meta">
+                    <span>San Francisco</span>
+                    <span class="sep">·</span>
+                    <span class="t-stale">open 71 days</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">systems-keywords</span>
+                    <span
+                      >because the description mentions sharding, caching,
+                      retrieval at scale</span
+                    >
+                  </div>
+                </article>
+
+                <article class="row row-tired">
+                  <div class="row-company">Warp</div>
+                  <div class="row-title">Software Engineer, Rust Platform</div>
+                  <div class="row-meta">
+                    <span>San Francisco</span>
+                    <span class="sep">·</span>
+                    <span class="t-tired">open 216 days</span>
+                  </div>
+                  <div class="row-why">
+                    <span>matched</span>
+                    <span class="rule-name">rust-in-title</span>
+                    <span>because &lsquo;Rust&rsquo; is in the title</span>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ---------- The application sheet ---------- -->
+    <div class="sheet-scrim" data-sheet>
+      <div
+        class="sheet"
+        role="dialog"
+        aria-label="Apply to Val Town, Systems Engineer, Runtime"
+      >
+        <div class="sheet-head">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="row-company">Val Town</div>
+              <h2 class="sheet-title">Systems Engineer, Runtime</h2>
+            </div>
+            <span class="tag">Ashby</span>
+          </div>
+          <div class="step-marks">
+            <button type="button" class="step-mark is-on" data-mark>
+              Review
+            </button>
+            <span class="step-sep">·</span>
+            <button type="button" class="step-mark" data-mark>Attach</button>
+            <span class="step-sep">·</span>
+            <button type="button" class="step-mark" data-mark>Open</button>
+          </div>
+        </div>
+
+        <div class="sheet-body">
+          <!-- ---------- Step 1: Review ---------- -->
+          <section class="step-panel is-on" data-step aria-label="Review">
+            <div class="section-head tight">From your profile</div>
+            <div class="grid grid-cols-2 gap-x-12">
+              <div class="field">
+                <div class="field-label">Full name</div>
+                <div
+                  class="field-value flex items-baseline justify-between gap-4"
+                >
+                  <span>Dana Ferreira</span>
+                  <span class="prov">profile.toml</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">Email</div>
+                <div
+                  class="field-value flex items-baseline justify-between gap-4"
+                >
+                  <span>dana@dferreira.dev</span>
+                  <span class="prov">profile.toml</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">Phone</div>
+                <div
+                  class="field-value flex items-baseline justify-between gap-4"
+                >
+                  <span>+1 415 555 0148</span>
+                  <span class="prov">resume-systems.pdf</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">Location</div>
+                <div
+                  class="field-value flex items-baseline justify-between gap-4"
+                >
+                  <span>Oakland, California</span>
+                  <span class="prov">profile.toml</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">GitHub</div>
+                <div
+                  class="field-value flex items-baseline justify-between gap-4"
+                >
+                  <span>github.com/dferreira</span>
+                  <span class="prov">profile.toml</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">Website</div>
+                <div
+                  class="field-value flex items-baseline justify-between gap-4"
+                >
+                  <span>dferreira.dev</span>
+                  <span class="prov">profile.toml</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">Work authorisation</div>
+                <div
+                  class="field-value flex items-baseline justify-between gap-4"
+                >
+                  <span>US citizen, no sponsorship</span>
+                  <span class="prov">profile.toml</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">Years of experience</div>
+                <div
+                  class="field-value flex items-baseline justify-between gap-4"
+                >
+                  <span>Nine</span>
+                  <span class="prov">resume-systems.pdf</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-head">Perch is not guessing at these</div>
+
+            <div class="field">
+              <div class="field-label">Preferred start date</div>
+              <input
+                class="input flagged"
+                type="text"
+                value=""
+                readonly
+                aria-label="Preferred start date, left blank"
+              />
+              <div class="note mt-2">
+                Perch does not know your start date. This is left blank.
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">How did you hear about us</div>
+              <input
+                class="input flagged"
+                type="text"
+                value=""
+                readonly
+                aria-label="How did you hear about us, left blank"
+              />
+              <div class="note mt-2">
+                Perch does not know how you found this role. This is left blank.
+              </div>
+            </div>
+
+            <div class="section-head">Left to you</div>
+
+            <div class="note mb-3">
+              Perch does not write these.
+            </div>
+
+            <div class="field">
+              <div class="field-label">Cover letter</div>
+              <textarea
+                class="textarea by-design"
+                rows="4"
+                placeholder="Perch leaves this to you."
+              ></textarea>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Why do you want to work at Val Town</div>
+              <textarea
+                class="textarea by-design"
+                rows="4"
+                placeholder="Perch leaves this to you."
+              ></textarea>
+            </div>
+          </section>
+
+          <!-- ---------- Step 2: Attach ---------- -->
+          <section class="step-panel" data-step aria-label="Attach">
+            <div class="section-head tight">Attach one file</div>
+
+            <button type="button" class="doc-row is-on" data-doc>
+              <span class="doc-mark"></span>
+              <span class="flex-1 min-w-0">
+                <span class="flex items-baseline gap-2 flex-wrap">
+                  <span class="doc-name">resume-systems.pdf</span>
+                  <span class="tag">pdf</span>
+                  <span class="note">148 KB</span>
+                </span>
+                <span class="note block mt-1"
+                  >Attached to the Oxide Computer application, three weeks ago.
+                  Leads with the storage engine work.</span
+                >
+              </span>
+            </button>
+
+            <button type="button" class="doc-row" data-doc>
+              <span class="doc-mark"></span>
+              <span class="flex-1 min-w-0">
+                <span class="flex items-baseline gap-2 flex-wrap">
+                  <span class="doc-name">resume-platform.pdf</span>
+                  <span class="tag">pdf</span>
+                  <span class="note">141 KB</span>
+                </span>
+                <span class="note block mt-1"
+                  >Attached to the Ramp application, seven weeks ago. Same
+                  history, platform and API work first.</span
+                >
+              </span>
+            </button>
+
+            <button type="button" class="doc-row" data-doc>
+              <span class="doc-mark"></span>
+              <span class="flex-1 min-w-0">
+                <span class="flex items-baseline gap-2 flex-wrap">
+                  <span class="doc-name">letter-opening.md</span>
+                  <span class="tag">md</span>
+                  <span class="note">2.4 KB</span>
+                </span>
+                <span class="note block mt-1"
+                  >You copied two paragraphs of this into the Sourcegraph
+                  letter, 24 days ago. Nothing in it is about Val
+                  Town.</span
+                >
+              </span>
+            </button>
+
+            <button type="button" class="doc-row" data-doc>
+              <span class="doc-mark"></span>
+              <span class="flex-1 min-w-0">
+                <span class="flex items-baseline gap-2 flex-wrap">
+                  <span class="doc-name">letter-referral.md</span>
+                  <span class="tag">md</span>
+                  <span class="note">1.1 KB</span>
+                </span>
+                <span class="note block mt-1"
+                  >Not used yet. It has been sitting here since you set Perch
+                  up in March.</span
+                >
+              </span>
+            </button>
+
+            <div class="note mt-4">
+              Perch attaches the file you pick, byte for byte. It does not
+              rewrite it for the role, and it does not keep a version you have
+              not read.
+            </div>
+          </section>
+
+          <!-- ---------- Step 3: Open in browser ---------- -->
+          <section class="step-panel" data-step aria-label="Open in browser">
+            <div class="section-head tight">What happens next</div>
+
+            <p class="lede">
+              Perch opens Val Town’s Ashby form in a browser window, types the
+              values below into it, and stops. It does not press submit. There
+              is no submit anywhere in this program. The form is left open and
+              filled in.
+            </p>
+
+            <div class="section-head">Fill plan</div>
+
+            <div class="plan">
+              <div class="plan-row">
+                <span>input[name="_systemfield_name"]</span
+                ><span class="arrow">→</span
+                ><span class="val">Dana Ferreira</span>
+                <span class="prov">profile.toml</span>
+              </div>
+              <div class="plan-row">
+                <span>input[name="_systemfield_email"]</span
+                ><span class="arrow">→</span
+                ><span class="val">dana@dferreira.dev</span>
+                <span class="prov">profile.toml</span>
+              </div>
+              <div class="plan-row">
+                <span>input[name="_systemfield_phone"]</span
+                ><span class="arrow">→</span
+                ><span class="val">+1 415 555 0148</span>
+                <span class="prov">resume-systems.pdf</span>
+              </div>
+              <div class="plan-row">
+                <span>input[name="_systemfield_location"]</span
+                ><span class="arrow">→</span
+                ><span class="val">Oakland, California</span>
+                <span class="prov">profile.toml</span>
+              </div>
+              <div class="plan-row">
+                <span>input[name="_systemfield_resume"]</span
+                ><span class="arrow">→</span
+                ><span class="val">resume-systems.pdf</span>
+                <span class="prov">docs/</span>
+              </div>
+              <div class="plan-row">
+                <span>input[name="q_github_url"]</span
+                ><span class="arrow">→</span
+                ><span class="val">github.com/dferreira</span>
+                <span class="prov">profile.toml</span>
+              </div>
+            </div>
+
+            <div class="note mt-3">
+              Two boxes stay empty on purpose: preferred start date, and how you
+              heard about Val Town. Two more are left to you: the cover letter,
+              and why you want to work there. Perch types nothing into any of
+              the four.
+            </div>
+          </section>
+        </div>
+
+        <div class="sheet-foot">
+          <button type="button" class="btn btn-ghost" data-back>Close</button>
+          <div class="flex items-center gap-3">
+            <span class="note"
+              ><span data-foot-word>continue</span>
+              <span class="kbd">⌘↵</span></span
+            >
+            <button type="button" class="btn btn-primary" data-next>
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint-bar">
+      <span class="hint"
+        ><span class="kbd">⌥←</span> <span class="kbd">⌥→</span> steps</span
+      >
+      <span class="hint"><span class="kbd">⌘↵</span> continue</span>
+      <span class="hint"><span class="kbd">esc</span> close sheet</span>
+      <span class="spacer"></span>
+      <span class="hint"><span class="kbd">⌘K</span> commands</span>
+    </div>
+
+    <script src="perch.js"></script>
+    <script>
+      perchBoot({ active: "Feed" });
+    </script>
+    <script>
+      (function () {
+        const scrim = document.querySelector("[data-sheet]");
+        const panels = [...document.querySelectorAll("[data-step]")];
+        const marks = [...document.querySelectorAll("[data-mark]")];
+        const back = document.querySelector("[data-back]");
+        const next = document.querySelector("[data-next]");
+        const word = document.querySelector("[data-foot-word]");
+        const labels = [
+          ["Close", "Continue", "continue"],
+          ["Back", "Continue", "continue"],
+          ["Back", "Open in browser", "open"],
+        ];
+        let i = 0;
+
+        function show(n) {
+          i = Math.max(0, Math.min(panels.length - 1, n));
+          panels.forEach((p, k) => p.classList.toggle("is-on", k === i));
+          marks.forEach((m, k) => m.classList.toggle("is-on", k === i));
+          back.textContent = labels[i][0];
+          next.textContent = labels[i][1];
+          word.textContent = labels[i][2];
+          document.querySelector(".sheet-body").scrollTop = 0;
+        }
+
+        marks.forEach((m, k) => m.addEventListener("click", () => show(k)));
+        next.addEventListener("click", () => {
+          if (i < panels.length - 1) show(i + 1);
+        });
+        back.addEventListener("click", () => {
+          if (i === 0) close();
+          else show(i - 1);
+        });
+
+        function close() {
+          scrim.style.display = "none";
+        }
+
+        document.querySelectorAll("[data-doc]").forEach((row) => {
+          row.addEventListener("click", () => {
+            document
+              .querySelectorAll("[data-doc]")
+              .forEach((r) => r.classList.remove("is-on"));
+            row.classList.add("is-on");
+          });
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (document.querySelector(".palette-scrim.is-open")) return;
+          if (e.altKey && e.key === "ArrowRight") {
+            e.preventDefault();
+            show(i + 1);
+          } else if (e.altKey && e.key === "ArrowLeft") {
+            e.preventDefault();
+            show(i - 1);
+          } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+            e.preventDefault();
+            if (i < panels.length - 1) show(i + 1);
+          } else if (e.key === "Escape") {
+            close();
+          }
+        });
+
+        show(0);
+      })();
+    </script>
+  </body>
+</html>

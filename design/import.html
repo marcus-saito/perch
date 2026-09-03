@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perch: Import review</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="perch.css" />
+    <style>
+      /* One-off layout for the import diff. Everything else comes from perch.css. */
+      .pane-body {
+        padding-bottom: 156px;
+      }
+      .pane-sub.lede {
+        color: var(--ink-2);
+        max-width: 66ch;
+      }
+
+      /* A row here holds a label, a diff, a quote and often a note, so it
+         needs more room than a feed row. */
+      .queue .row {
+        padding: 21px 18px 23px;
+      }
+      .d-act {
+        padding-top: 2px;
+      }
+
+      .d-was {
+        font-size: var(--t-12);
+        color: var(--ink-4);
+        margin: 5px 0 3px;
+      }
+      .d-was .old {
+        color: var(--ink-3);
+        text-decoration: line-through;
+        text-decoration-thickness: 1px;
+      }
+      .d-now {
+        font-size: var(--t-15);
+        color: var(--ink);
+        line-height: 1.45;
+      }
+      .d-now.d-void {
+        color: var(--ink-3);
+      }
+
+      .anchor {
+        margin-top: 10px;
+        background: var(--paper-sunk);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        padding: 9px 12px;
+        font-family: var(--font-mono);
+        font-size: var(--t-12);
+        line-height: 1.6;
+        color: var(--ink-2);
+      }
+      .anchor .hl {
+        background: var(--accent-soft);
+        border-radius: 2px;
+        padding: 1px 3px;
+      }
+      .anchor .ref {
+        display: block;
+        margin-top: 7px;
+        font-size: var(--t-11);
+        color: var(--ink-4);
+      }
+      .anchor.flagged {
+        background: var(--caution-soft);
+        font-family: var(--font-ui);
+        color: var(--ink-2);
+        line-height: 1.55;
+      }
+      .d-note {
+        font-size: var(--t-12);
+        color: var(--ink-3);
+        line-height: 1.55;
+        margin-top: 8px;
+        max-width: 62ch;
+      }
+
+      .d-mark {
+        display: none;
+        font-size: var(--t-12);
+        color: var(--ink-3);
+        align-items: center;
+        gap: 6px;
+        padding-right: 6px;
+      }
+      [data-state="accepted"] .d-mark-accepted {
+        display: inline-flex;
+      }
+      [data-state="skipped"] .d-mark-skipped {
+        display: inline-flex;
+      }
+      [data-state="accepted"] .d-accept {
+        display: none;
+      }
+      .row[data-state="accepted"]:not(.is-selected) {
+        opacity: 0.82;
+      }
+      .row[data-state="skipped"] .d-now {
+        color: var(--ink-3);
+      }
+
+      .footbar {
+        position: fixed;
+        left: var(--rail-w);
+        right: 0;
+        bottom: 33px;
+        border-top: 1px solid var(--rule);
+        background: var(--paper);
+        padding: 13px 32px;
+        z-index: 15;
+      }
+      .foot-line {
+        font-size: var(--t-13);
+        color: var(--ink-2);
+      }
+      .foot-path {
+        font-size: var(--t-11);
+        color: var(--ink-4);
+        margin-top: 3px;
+      }
+      /* The footbar sits above the hint bar, so the hint bar has to be solid
+         paper here. Otherwise the page scrolls through the strip between. */
+      .hint-bar {
+        background: var(--paper);
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+  Accent budget, resolved. Three uses on this screen:
+    1. the selection bar on the row under the cursor (.row.is-selected, from perch.css)
+    2. --accent-soft behind the matched span in the anchor blocks: one
+       instrument used identically everywhere
+    3. the .btn-primary, "Write to profile.toml"
+  Because the primary button spends the accent, the accepted rows do not: an accepted
+  field is one quiet word in --ink-3 and a settled opacity. Accepting is not a
+  celebration, and nothing on this screen has been written yet.
+-->
+
+    <div class="app">
+      <div data-rail></div>
+      <div class="stage">
+        <section class="pane">
+          <header class="pane-head">
+            <div>
+              <h1 class="pane-title">Review import</h1>
+              <p class="pane-sub lede">
+                Read from <span class="mono">resume-systems.pdf</span>. Nothing
+                is saved to your profile until it is accepted here.
+              </p>
+            </div>
+          </header>
+
+          <div class="pane-body pad-top">
+            <div class="w-full max-w-[780px] mx-auto">
+              <div class="prov">
+                read locally by llama3.1:8b. Nothing left this Mac
+              </div>
+
+              <div class="section-head">Proposed fields</div>
+
+              <div class="queue" data-queue data-clearable="skipped">
+                <!-- 1 · name: replacing something that is already in the profile -->
+                <article class="row" data-row data-state="accepted">
+                  <div class="grid grid-cols-[1fr_auto] gap-6 items-start">
+                    <div class="min-w-0">
+                      <div class="field-label">Name</div>
+                      <div class="d-was">
+                        in profile <span class="old">D. Ferreira</span>
+                      </div>
+                      <div class="d-now">Dana Ferreira</div>
+                      <div class="anchor">
+                        <span class="hl">DANA FERREIRA</span>
+                        <span class="ref">page 1, line 1</span>
+                      </div>
+                    </div>
+                    <div class="d-act flex items-center gap-2">
+                      <span class="d-mark d-mark-accepted">accepted</span>
+                      <span class="d-mark d-mark-skipped">skipped</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm d-accept"
+                        data-act="accept"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="skip"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 2 · email: also a genuine replacement -->
+                <article class="row" data-row data-state="accepted">
+                  <div class="grid grid-cols-[1fr_auto] gap-6 items-start">
+                    <div class="min-w-0">
+                      <div class="field-label">Email</div>
+                      <div class="d-was">
+                        in profile <span class="old">dana@hey.com</span>
+                      </div>
+                      <div class="d-now">dana@dferreira.dev</div>
+                      <div class="anchor">
+                        <span class="hl">dana@dferreira.dev</span> · +1 (415)
+                        555-0148 · github.com/dferreira
+                        <span class="ref">page 1, line 2</span>
+                      </div>
+                    </div>
+                    <div class="d-act flex items-center gap-2">
+                      <span class="d-mark d-mark-accepted">accepted</span>
+                      <span class="d-mark d-mark-skipped">skipped</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm d-accept"
+                        data-act="accept"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="skip"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 3 · phone: already in the file, so skipping changes nothing -->
+                <article class="row" data-row data-state="skipped">
+                  <div class="grid grid-cols-[1fr_auto] gap-6 items-start">
+                    <div class="min-w-0">
+                      <div class="field-label">Phone</div>
+                      <div class="d-was">in profile +1 415 555 0148</div>
+                      <div class="d-now">+1 (415) 555-0148</div>
+                      <div class="anchor">
+                        dana@dferreira.dev ·
+                        <span class="hl">+1 (415) 555-0148</span> ·
+                        github.com/dferreira
+                        <span class="ref">page 1, line 2</span>
+                      </div>
+                      <div class="d-note">
+                        Skipped. The number already in the profile says the same
+                        thing, punctuated differently.
+                      </div>
+                    </div>
+                    <div class="d-act flex items-center gap-2">
+                      <span class="d-mark d-mark-accepted">accepted</span>
+                      <span class="d-mark d-mark-skipped">skipped</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm d-accept"
+                        data-act="accept"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="skip"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 4 · location, fuzzy anchor: the value is normalised, so it stays un-accepted -->
+                <article class="row" data-row data-state="eye">
+                  <div class="grid grid-cols-[1fr_auto] gap-6 items-start">
+                    <div class="min-w-0">
+                      <div class="field-label">Location</div>
+                      <div class="d-was">
+                        in profile Oakland, California. Remote or the Bay Area
+                      </div>
+                      <div class="d-now">San Francisco, CA</div>
+                      <div class="anchor">
+                        <span class="hl">SF Bay Area</span> · open to remote
+                        <span class="ref">page 1, line 3</span>
+                      </div>
+                      <div class="anchor flagged">
+                        This value is read, not quoted. The document says SF Bay
+                        Area, and Perch turned that into San Francisco, CA.
+                        Accepting it would replace the more exact line already
+                        in your profile.
+                      </div>
+                    </div>
+                    <div class="d-act flex items-center gap-2">
+                      <span class="d-mark d-mark-accepted">accepted</span>
+                      <span class="d-mark d-mark-skipped">skipped</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm d-accept"
+                        data-act="accept"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="skip"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 5 · github -->
+                <article class="row" data-row data-state="accepted">
+                  <div class="grid grid-cols-[1fr_auto] gap-6 items-start">
+                    <div class="min-w-0">
+                      <div class="field-label">GitHub</div>
+                      <div class="d-was">in profile not set</div>
+                      <div class="d-now">github.com/dferreira</div>
+                      <div class="anchor">
+                        dana@dferreira.dev · +1 (415) 555-0148 ·
+                        <span class="hl">github.com/dferreira</span>
+                        <span class="ref">page 1, line 2</span>
+                      </div>
+                    </div>
+                    <div class="d-act flex items-center gap-2">
+                      <span class="d-mark d-mark-accepted">accepted</span>
+                      <span class="d-mark d-mark-skipped">skipped</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm d-accept"
+                        data-act="accept"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="skip"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 6 · nothing in the document to point at, so there is no Accept button at all -->
+                <article
+                  class="row"
+                  data-row
+                  data-state="open"
+                  data-noaccept="1"
+                >
+                  <div class="grid grid-cols-[1fr_auto] gap-6 items-start">
+                    <div class="min-w-0">
+                      <div class="field-label">Summary</div>
+                      <div class="d-was">in profile not set</div>
+                      <div class="d-now d-void">
+                        Backend engineer with deep experience in distributed
+                        storage, Rust and Go.
+                      </div>
+                      <div class="anchor flagged">
+                        No line in resume-systems.pdf says this, so Perch is not
+                        offering it. Perch does not write prose it cannot point
+                        at.
+                      </div>
+                    </div>
+                    <div class="d-act flex items-center gap-2">
+                      <span class="d-mark d-mark-skipped">skipped</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="skip"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 7 · most recent employer -->
+                <article class="row" data-row data-state="accepted">
+                  <div class="grid grid-cols-[1fr_auto] gap-6 items-start">
+                    <div class="min-w-0">
+                      <div class="field-label">Most recent employer</div>
+                      <div class="d-was">in profile not set</div>
+                      <div class="d-now">
+                        Cloudflare · Senior Software Engineer, Storage · March
+                        2023 to February 2026
+                      </div>
+                      <div class="anchor">
+                        <div>
+                          <span class="hl"
+                            >Cloudflare — Senior Software Engineer,
+                            Storage</span
+                          >
+                        </div>
+                        <div>
+                          <span class="hl">March 2023 – February 2026</span> ·
+                          remote
+                        </div>
+                        <span class="ref">page 1, lines 6–7</span>
+                      </div>
+                    </div>
+                    <div class="d-act flex items-center gap-2">
+                      <span class="d-mark d-mark-accepted">accepted</span>
+                      <span class="d-mark d-mark-skipped">skipped</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm d-accept"
+                        data-act="accept"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="skip"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 8 · previous employer -->
+                <article class="row" data-row data-state="accepted">
+                  <div class="grid grid-cols-[1fr_auto] gap-6 items-start">
+                    <div class="min-w-0">
+                      <div class="field-label">Previous employer</div>
+                      <div class="d-was">in profile not set</div>
+                      <div class="d-now">
+                        Honeycomb · Software Engineer, Infrastructure · August 2020
+                        to February 2023
+                      </div>
+                      <div class="anchor">
+                        <div>
+                          <span class="hl"
+                            >Honeycomb — Software Engineer, Infrastructure</span
+                          >
+                        </div>
+                        <div>
+                          <span class="hl">August 2020 – February 2023</span>
+                        </div>
+                        <span class="ref">page 1, lines 14–15</span>
+                      </div>
+                    </div>
+                    <div class="d-act flex items-center gap-2">
+                      <span class="d-mark d-mark-accepted">accepted</span>
+                      <span class="d-mark d-mark-skipped">skipped</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm d-accept"
+                        data-act="accept"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="skip"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 9 · employer before that: still waiting on the user -->
+                <article class="row" data-row data-state="open">
+                  <div class="grid grid-cols-[1fr_auto] gap-6 items-start">
+                    <div class="min-w-0">
+                      <div class="field-label">Employer before that</div>
+                      <div class="d-was">in profile not set</div>
+                      <div class="d-now">
+                        Datadog · Software Engineer · June 2017 to July 2020
+                      </div>
+                      <div class="anchor">
+                        <div>
+                          <span class="hl"
+                            >Datadog — Software Engineer</span
+                          >
+                        </div>
+                        <div>
+                          <span class="hl">June 2017 – July 2020</span> · San
+                          Francisco
+                        </div>
+                        <span class="ref">page 2, lines 3–4</span>
+                      </div>
+                    </div>
+                    <div class="d-act flex items-center gap-2">
+                      <span class="d-mark d-mark-accepted">accepted</span>
+                      <span class="d-mark d-mark-skipped">skipped</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm d-accept"
+                        data-act="accept"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="skip"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 10 · skills, quoted verbatim -->
+                <article class="row" data-row data-state="accepted">
+                  <div class="grid grid-cols-[1fr_auto] gap-6 items-start">
+                    <div class="min-w-0">
+                      <div class="field-label">Skills</div>
+                      <div class="d-was">in profile not set</div>
+                      <div class="d-now">
+                        Rust, Go, Tokio, gRPC, PostgreSQL, FoundationDB,
+                        Kubernetes, Linux internals
+                      </div>
+                      <div class="anchor">
+                        <div>SKILLS</div>
+                        <div>
+                          <span class="hl"
+                            >Rust, Go, Tokio, gRPC, PostgreSQL, FoundationDB,
+                            Kubernetes, Linux internals</span
+                          >
+                        </div>
+                        <span class="ref">page 2, lines 11–12</span>
+                      </div>
+                    </div>
+                    <div class="d-act flex items-center gap-2">
+                      <span class="d-mark d-mark-accepted">accepted</span>
+                      <span class="d-mark d-mark-skipped">skipped</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm d-accept"
+                        data-act="accept"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        data-act="skip"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              </div>
+
+              <p class="d-note" style="margin-top: 18px">
+                Anything left unaccepted stays out of the file. You can run
+                <span class="mono">profile import resume-systems.pdf</span>
+                again whenever you like.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="footbar">
+      <div class="w-full max-w-[780px] mx-auto flex items-center gap-6">
+        <div class="min-w-0">
+          <div class="foot-line" id="tally">
+            Six fields to write. One skipped, one needs your eye, one still
+            waiting, one Perch is not offering.
+          </div>
+          <div class="foot-path mono">
+            writes to ~/.config/perch/profile.toml
+          </div>
+        </div>
+        <div class="ml-auto flex items-center gap-2">
+          <button type="button" class="btn btn-ghost">Discard</button>
+          <button type="button" class="btn btn-primary">
+            Write to profile.toml
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint-bar">
+      <span class="hint"
+        ><span class="kbd">j</span> <span class="kbd">k</span> move</span
+      >
+      <span class="hint"><span class="kbd">a</span> accept</span>
+      <span class="hint"><span class="kbd">e</span> edit</span>
+      <span class="hint"><span class="kbd">x</span> skip</span>
+      <span class="spacer"></span>
+      <span class="hint"><span class="kbd">⌘K</span> commands</span>
+    </div>
+
+    <script src="perch.js"></script>
+    <script>
+      /* The hint bar promises a / e / x, so a / e / x have to be real. */
+      const rowsAll = () => [...document.querySelectorAll("[data-row]")];
+
+      /* A sentence, not a score: what will be written, and what will not. */
+      const WORDS = [
+        "no",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten",
+      ];
+      const word = (n) => (n < WORDS.length ? WORDS[n] : String(n));
+      const upper = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+
+      function tally() {
+        const rows = rowsAll();
+        const n = (s) => rows.filter((r) => r.dataset.state === s).length;
+        const accepted = n("accepted"),
+          skipped = n("skipped"),
+          eye = n("eye");
+        const held = rows.filter(
+          (r) => r.dataset.noaccept && r.dataset.state !== "skipped",
+        ).length;
+        const waiting = rows.length - accepted - skipped - eye - held;
+        const head = accepted
+          ? upper(word(accepted)) +
+            (accepted === 1 ? " field to write." : " fields to write.")
+          : "Nothing to write yet.";
+        const parts = [];
+        if (skipped) parts.push(word(skipped) + " skipped");
+        if (eye)
+          parts.push(
+            word(eye) + (eye === 1 ? " needs your eye" : " need your eye"),
+          );
+        if (waiting) parts.push(word(waiting) + " still waiting");
+        if (held) parts.push(word(held) + " Perch is not offering");
+        document.getElementById("tally").textContent =
+          head + (parts.length ? " " + upper(parts.join(", ")) + "." : "");
+      }
+
+      function setState(row, state) {
+        if (!row) return;
+        if (state === "accepted" && row.dataset.noaccept) return;
+        row.dataset.state = state;
+        tally();
+      }
+
+      function editRow(row) {
+        if (!row) return;
+        const now = row.querySelector(".d-now");
+        if (!now || now.querySelector("input")) return;
+        const was = now.textContent.trim();
+        const input = document.createElement("input");
+        input.className = "input";
+        input.value = was;
+        now.textContent = "";
+        now.appendChild(input);
+        input.focus();
+        input.select();
+        const commit = () => {
+          now.textContent = input.value.trim() || was;
+        };
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            now.textContent = was;
+          }
+        });
+        input.addEventListener("blur", commit);
+      }
+
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-act]");
+        if (!btn) return;
+        const row = btn.closest("[data-row]");
+        if (btn.dataset.act === "accept") setState(row, "accepted");
+        else if (btn.dataset.act === "skip") setState(row, "skipped");
+        else if (btn.dataset.act === "edit") setTimeout(() => editRow(row), 0);
+      });
+
+      tally();
+
+      /* x is set-aside, and here setting a field aside is skipping it: the row
+         stays where it is, still legible, so you can see what you turned down.
+         u puts it back in the state it was in, and the tally follows both ways. */
+      perchBoot({
+        active: "Profile",
+        queue: {
+          onSetAside: (row) => {
+            const was = row.dataset.state;
+            setState(row, "skipped");
+            return () => setState(row, was);
+          },
+          keys: {
+            a: (row) => setState(row, "accepted"),
+            e: (row) => editRow(row),
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
