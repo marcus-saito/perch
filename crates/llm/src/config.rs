@@ -96,7 +96,14 @@ fn is_loopback(host: &str) -> bool {
     // A trailing dot names the DNS root explicitly. `localhost.` and
     // `localhost` are the same host and resolve the same way.
     let name = bare.strip_suffix('.').unwrap_or(bare);
-    matches!(name, "localhost" | "localhost.localdomain")
+    // `localhost` is the only name an operating system guarantees answers on
+    // loopback, and so the only one that can be trusted without asking. macOS
+    // has no entry for `localhost.localdomain`, which is a Linux hosts-file
+    // convention: it goes to the resolver like any other name, and a resolver
+    // that answers it takes the résumé off this Mac while this says nothing
+    // left. Resolving the name here would not settle it either, because the
+    // address a name gives now is not the address the request gets later.
+    name == "localhost"
 }
 
 impl Model {
@@ -293,6 +300,9 @@ mod tests {
             // résumé there under a promise that nothing left the machine.
             r"http://evil.example\@localhost/v1",
             r"http://evil.example\@127.0.0.1/v1",
+            // A Linux hosts-file convention that macOS does not answer. It
+            // reads as this machine and is whatever a resolver says it is.
+            "http://localhost.localdomain:11434/v1",
         ] {
             let model = Model {
                 endpoint: endpoint.into(),
