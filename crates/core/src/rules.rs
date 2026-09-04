@@ -280,7 +280,7 @@ impl Rules {
         };
         let file: RuleFile = toml::from_str(&text).map_err(|source| Error::Toml {
             path: path.display().to_string(),
-            source,
+            source: crate::error::TomlComplaint::new(&source, &text),
         })?;
         let rules = Self { rules: file.rules };
         rules.validate()?;

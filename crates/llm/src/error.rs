@@ -13,7 +13,7 @@ pub enum Error {
     Config {
         path: String,
         #[source]
-        source: toml::de::Error,
+        source: perch_core::TomlComplaint,
     },
 
     #[error("{0} answered with a redirect rather than a reply, and Perch does not follow one")]

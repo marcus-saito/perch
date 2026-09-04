@@ -122,6 +122,9 @@ enum ModelCommand {
         /// Forget the key held for the configured endpoint
         #[arg(long)]
         forget: bool,
+        /// Forget the key held for this host rather than the configured one
+        #[arg(long, value_name = "HOST", requires = "forget")]
+        host: Option<String>,
     },
     /// Run with no model at all. Everything except résumé import still works.
     Off,
@@ -196,6 +199,60 @@ fn end_quietly_on_closed_pipe() {
 #[cfg(not(unix))]
 fn end_quietly_on_closed_pipe() {}
 
+/// Terminal echo turned off for as long as this is held, so a key typed at the
+/// prompt is not left on the screen and in the scrollback.
+///
+/// The previous terminal settings go back on drop, so they are restored even
+/// when the read between fails. A stdin that is not a terminal has no echo to
+/// turn off and gets `None`: reading a key from a pipe is still supported.
+#[cfg(unix)]
+struct EchoOff {
+    fd: i32,
+    restore: libc::termios,
+}
+
+#[cfg(unix)]
+impl EchoOff {
+    fn new() -> Option<Self> {
+        let fd = libc::STDIN_FILENO;
+        // SAFETY: `termios` is plain data, and `tcgetattr` either fills the
+        // whole of it or reports that it did not.
+        unsafe {
+            let mut current = std::mem::MaybeUninit::<libc::termios>::uninit();
+            if libc::tcgetattr(fd, current.as_mut_ptr()) != 0 {
+                return None;
+            }
+            let restore = current.assume_init();
+            let mut quiet = restore;
+            quiet.c_lflag &= !libc::ECHO;
+            if libc::tcsetattr(fd, libc::TCSAFLUSH, &quiet) != 0 {
+                return None;
+            }
+            Some(Self { fd, restore })
+        }
+    }
+}
+
+#[cfg(unix)]
+impl Drop for EchoOff {
+    fn drop(&mut self) {
+        // SAFETY: `restore` is what `tcgetattr` gave back for this same fd.
+        unsafe {
+            libc::tcsetattr(self.fd, libc::TCSAFLUSH, &self.restore);
+        }
+    }
+}
+
+#[cfg(not(unix))]
+struct EchoOff;
+
+#[cfg(not(unix))]
+impl EchoOff {
+    fn new() -> Option<Self> {
+        None
+    }
+}
+
 fn main() {
     end_quietly_on_closed_pipe();
     if let Err(err) = run() {
@@ -241,13 +298,15 @@ fn run() -> Result<()> {
         }
         Command::Model(ModelCommand::List) => model_list(&paths, &style),
         Command::Model(ModelCommand::Set { name, endpoint }) => {
-            model_set(&paths, &name, endpoint.as_deref())
+            model_set(&paths, &style, &name, endpoint.as_deref())
         }
         Command::Model(ModelCommand::Endpoint { url, allow_resume }) => {
-            model_endpoint(&paths, &url, allow_resume)
+            model_endpoint(&paths, &style, &url, allow_resume)
         }
-        Command::Model(ModelCommand::Key { forget }) => model_key(&paths, &style, forget),
-        Command::Model(ModelCommand::Off) => model_off(&paths),
+        Command::Model(ModelCommand::Key { forget, host }) => {
+            model_key(&paths, &style, forget, host.as_deref())
+        }
+        Command::Model(ModelCommand::Off) => model_off(&paths, &style),
         Command::Profile(ProfileCommand::Show) => profile_show(&paths, &style),
         Command::Profile(ProfileCommand::Import {
             file,
@@ -874,8 +933,9 @@ fn model_list(paths: &Paths, style: &Style) -> Result<()> {
     Ok(())
 }
 
-fn model_set(paths: &Paths, name: &str, endpoint: Option<&str>) -> Result<()> {
+fn model_set(paths: &Paths, style: &Style, name: &str, endpoint: Option<&str>) -> Result<()> {
     let mut model = LlmModel::load(&paths.model())?;
+    let was = model.host().filter(|_| !model.is_local());
     model.model = name.to_string();
     if let Some(endpoint) = endpoint {
         model.endpoint = endpoint.to_string();
@@ -885,6 +945,7 @@ fn model_set(paths: &Paths, name: &str, endpoint: Option<&str>) -> Result<()> {
         model.endpoint = format!("{OLLAMA}/v1");
     }
     model.save(&paths.model())?;
+    let left_behind = was.filter(|old| Some(old.as_str()) != model.host().as_deref());
 
     println!("{name} will read résumés.");
     println!("{}", model.consequence());
@@ -892,14 +953,17 @@ fn model_set(paths: &Paths, name: &str, endpoint: Option<&str>) -> Result<()> {
         println!();
         println!("`perch model endpoint <url> --allow-resume` says it may.");
     }
+    say_a_key_may_be_left_behind(style, left_behind.as_deref());
     Ok(())
 }
 
-fn model_endpoint(paths: &Paths, url: &str, allow_resume: bool) -> Result<()> {
+fn model_endpoint(paths: &Paths, style: &Style, url: &str, allow_resume: bool) -> Result<()> {
     let mut model = LlmModel::load(&paths.model())?;
+    let was = model.host().filter(|_| !model.is_local());
     model.endpoint = url.to_string();
     model.consent.resume_import_may_leave_this_mac = allow_resume;
     model.save(&paths.model())?;
+    let left_behind = was.filter(|old| Some(old.as_str()) != model.host().as_deref());
 
     println!("Perch will ask {url}.");
     println!("{}", model.consequence());
@@ -912,6 +976,7 @@ fn model_endpoint(paths: &Paths, url: &str, allow_resume: bool) -> Result<()> {
         println!();
         println!("`perch model list` shows what it can run.");
     }
+    say_a_key_may_be_left_behind(style, left_behind.as_deref());
     Ok(())
 }
 
@@ -923,8 +988,19 @@ fn model_endpoint(paths: &Paths, url: &str, allow_resume: bool) -> Result<()> {
 /// on the machine to read. It is never written to model.toml: that file is
 /// meant to be one a person can open, copy and paste without handing over a
 /// credential by accident.
-fn model_key(paths: &Paths, style: &Style, forget: bool) -> Result<()> {
+fn model_key(paths: &Paths, style: &Style, forget: bool, named: Option<&str>) -> Result<()> {
     use std::io::{BufRead, Write};
+
+    // A host named here is forgotten whatever the endpoint says. Pointing the
+    // endpoint somewhere else leaves the old host's key in the keychain, and
+    // this is how it is reached afterwards.
+    if let Some(host) = named {
+        llm_secret::forget(host).map_err(perch_core::Error::msg)?;
+        println!();
+        println!("  Perch is holding no key for {host}.");
+        println!();
+        return Ok(());
+    }
 
     let model = LlmModel::load(&paths.model())?;
     let Some(host) = model.host() else {
@@ -956,8 +1032,14 @@ fn model_key(paths: &Paths, style: &Style, forget: bool) -> Result<()> {
     print!("  Key for {host} (it is not shown as you type it): ");
     std::io::stdout().flush()?;
     let mut typed = String::new();
-    if std::io::stdin().lock().read_line(&mut typed)? == 0 {
-        println!();
+    let read = {
+        let _quiet = EchoOff::new();
+        std::io::stdin().lock().read_line(&mut typed)?
+    };
+    // Nothing was echoed, the Return included, so the cursor is still sitting
+    // at the end of the prompt. Put it on the next line before anything prints.
+    println!();
+    if read == 0 {
         return Ok(());
     }
     let key = typed.trim();
@@ -979,12 +1061,36 @@ fn model_key(paths: &Paths, style: &Style, forget: bool) -> Result<()> {
     Ok(())
 }
 
-fn model_off(paths: &Paths) -> Result<()> {
+fn model_off(paths: &Paths, style: &Style) -> Result<()> {
+    // The file is about to be replaced, so one Perch cannot parse is not a
+    // reason to refuse. It only costs the sentence about a key left behind.
+    let left_behind = LlmModel::load(&paths.model())
+        .ok()
+        .and_then(|model| model.host().filter(|_| !model.is_local()));
     LlmModel::default().save(&paths.model())?;
     println!("No model configured.");
     println!("Watching, matching, filling and tracking work as before.");
     println!("Reading a résumé into proposed fields is the only thing that needs one.");
+    say_a_key_may_be_left_behind(style, left_behind.as_deref());
     Ok(())
+}
+
+/// Say that a key for the host just pointed away from is still in the keychain.
+///
+/// Whether one is really held cannot be checked here. Reading a key asks macOS
+/// for permission, and asking that every time an endpoint changes teaches
+/// people to approve it without looking. So this is said as a condition, and
+/// the command that settles it is named.
+fn say_a_key_may_be_left_behind(style: &Style, left_behind: Option<&str>) {
+    let Some(host) = left_behind else { return };
+    println!();
+    println!("If you gave Perch a key for {host}, it is still in the keychain.");
+    println!(
+        "{}",
+        style.dim(&format!(
+            "perch model key --forget --host {host}  takes it out"
+        ))
+    );
 }
 
 // ---- the profile, and reading a résumé into it -----------------------------

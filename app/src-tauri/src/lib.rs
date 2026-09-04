@@ -2077,6 +2077,11 @@ Rust, Go, Tokio, gRPC, PostgreSQL";
             "http://localhost:11434/v1",
             "http://127.0.0.1:1234/v1",
             "http://[::1]:11434/v1",
+            // Spellings of this Mac that a person actually types. Storing a key
+            // for one of these hands it to a process on this machine.
+            "http://0.0.0.0:11434/v1",
+            "http://localhost.:11434/v1",
+            "http://[::ffff:127.0.0.1]:11434/v1",
         ] {
             let here = model(endpoint);
             let host = here.host().expect("an endpoint with a host");

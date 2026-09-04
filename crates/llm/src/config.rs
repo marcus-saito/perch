@@ -6,6 +6,7 @@
 
 use crate::error::{Error, Result};
 use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
 use std::path::Path;
 use url::Url;
 
@@ -61,12 +62,17 @@ fn host_of(endpoint: &str) -> Option<String> {
     parsed.host_str().map(str::to_ascii_lowercase)
 }
 
-/// Loopback only. Anything else is somebody else's computer, and a document
-/// sent there has left this machine.
+/// Whether a request to this host is answered by this Mac. Anything else is
+/// somebody else's computer, and a document sent there has left this machine.
 ///
 /// Addresses are parsed rather than pattern-matched. A prefix test like
 /// `starts_with("127.")` calls `127.0.0.1.evil.example` loopback, and a résumé
 /// would go there without anyone being asked.
+///
+/// Reading an address on this Mac as remote is its own failure, and not a safe
+/// one. It asks consent to send a résumé that never leaves, and it stores an
+/// API key for a host that turns out to be a process on this machine, which
+/// then receives that key as a bearer token.
 fn is_loopback(host: &str) -> bool {
     // A URL parser brackets an IPv6 literal, and `[::1]` is not an address any
     // more than `::1` is a hostname. Unwrapping it here keeps someone running a
@@ -76,10 +82,21 @@ fn is_loopback(host: &str) -> bool {
         .strip_prefix('[')
         .and_then(|h| h.strip_suffix(']'))
         .unwrap_or(host);
-    if let Ok(ip) = bare.parse::<std::net::IpAddr>() {
-        return ip.is_loopback();
+    if let Ok(ip) = bare.parse::<IpAddr>() {
+        // `::ffff:127.0.0.1` is 127.0.0.1 written the long way, and is not
+        // loopback while it is still a v6 address. Unwrap it before asking.
+        let ip = match ip {
+            IpAddr::V6(v6) => v6.to_ipv4_mapped().map_or(ip, IpAddr::V4),
+            v4 => v4,
+        };
+        // The unspecified address is answered by a socket on this machine, and
+        // `0.0.0.0` is a common way to write "the server I am running here".
+        return ip.is_loopback() || ip.is_unspecified();
     }
-    matches!(host, "localhost" | "localhost.localdomain")
+    // A trailing dot names the DNS root explicitly. `localhost.` and
+    // `localhost` are the same host and resolve the same way.
+    let name = bare.strip_suffix('.').unwrap_or(bare);
+    matches!(name, "localhost" | "localhost.localdomain")
 }
 
 impl Model {
@@ -89,7 +106,7 @@ impl Model {
         match std::fs::read_to_string(path) {
             Ok(text) => toml::from_str(&text).map_err(|source| Error::Config {
                 path: path.display().to_string(),
-                source,
+                source: perch_core::TomlComplaint::new(&source, &text),
             }),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
             Err(err) => Err(err.into()),
@@ -201,6 +218,63 @@ mod tests {
                 "{endpoint} should be local"
             );
         }
+    }
+
+    #[test]
+    fn an_address_this_mac_answers_is_local_however_it_is_written() {
+        // Every one of these reaches a socket on this machine. Reading one as
+        // somebody else's computer is not a safe mistake: it asks consent to
+        // send a résumé that never leaves, and it stores an API key for a host
+        // that turns out to be a local process, which is then handed that key.
+        for endpoint in [
+            // The unspecified address, which is how people write "the server
+            // I am running here".
+            "http://0.0.0.0:11434/v1",
+            "http://[::]:11434/v1",
+            // A trailing dot names the DNS root and resolves the same way.
+            "http://localhost.:11434/v1",
+            "http://127.0.0.1.:11434/v1",
+            // 127.0.0.1 written the long way.
+            "http://[::ffff:127.0.0.1]:11434/v1",
+        ] {
+            let model = Model {
+                endpoint: endpoint.into(),
+                model: "m".into(),
+                consent: Consent::default(),
+            };
+            assert_eq!(
+                model.may_send_document(),
+                Permission::Local,
+                "{endpoint} should be local"
+            );
+            assert!(model.is_local(), "{endpoint} should want no key");
+        }
+    }
+
+    #[test]
+    fn a_config_file_is_never_quoted_back_when_it_fails_to_parse() {
+        // A key pasted into model.toml must not come out again through the
+        // error about it. The file is one a person is invited to open.
+        let dir = std::env::temp_dir().join(format!("perch-model-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("a temp directory");
+        let path = dir.join("model.toml");
+        std::fs::write(
+            &path,
+            "endpoint = \"x\"\napi_key = \"sk-must-not-appear\"\n",
+        )
+        .expect("a written file");
+
+        let failure = Model::load(&path).expect_err("an unknown field should not parse");
+        let mut said = failure.to_string();
+        let mut cause: &dyn std::error::Error = &failure;
+        while let Some(next) = cause.source() {
+            said.push_str(&next.to_string());
+            cause = next;
+        }
+        std::fs::remove_dir_all(&dir).ok();
+
+        assert!(!said.contains("sk-must-not-appear"), "{said}");
+        assert!(said.contains("unknown field `api_key`"), "{said}");
     }
 
     #[test]

@@ -5,7 +5,7 @@
 //! stored, so there is nowhere in this struct to keep one. API keys live in the
 //! system keychain, so there is nowhere here to keep one of those either.
 
-use crate::error::{Error, Result};
+use crate::error::{Error, Result, TomlComplaint};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -59,7 +59,7 @@ impl Profile {
         match std::fs::read_to_string(path) {
             Ok(text) => toml::from_str(&text).map_err(|source| Error::Toml {
                 path: path.display().to_string(),
-                source,
+                source: TomlComplaint::new(&source, &text),
             }),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
             Err(err) => Err(err.into()),

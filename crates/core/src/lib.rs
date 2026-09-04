@@ -17,7 +17,7 @@ pub mod store;
 pub mod sync;
 pub mod timesignal;
 
-pub use error::{Error, Result};
+pub use error::{Error, Result, TomlComplaint};
 pub use html::Block;
 pub use http::Http;
 pub use model::{
