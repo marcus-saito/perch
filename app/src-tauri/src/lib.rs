@@ -2082,6 +2082,7 @@ Rust, Go, Tokio, gRPC, PostgreSQL";
             "http://0.0.0.0:11434/v1",
             "http://localhost.:11434/v1",
             "http://[::ffff:127.0.0.1]:11434/v1",
+            "http://ollama.localhost:11434/v1",
         ] {
             let here = model(endpoint);
             let host = here.host().expect("an endpoint with a host");

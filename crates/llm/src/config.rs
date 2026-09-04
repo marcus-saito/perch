@@ -96,14 +96,36 @@ fn is_loopback(host: &str) -> bool {
     // A trailing dot names the DNS root explicitly. `localhost.` and
     // `localhost` are the same host and resolve the same way.
     let name = bare.strip_suffix('.').unwrap_or(bare);
-    // `localhost` is the only name an operating system guarantees answers on
-    // loopback, and so the only one that can be trusted without asking. macOS
-    // has no entry for `localhost.localdomain`, which is a Linux hosts-file
-    // convention: it goes to the resolver like any other name, and a resolver
-    // that answers it takes the résumé off this Mac while this says nothing
-    // left. Resolving the name here would not settle it either, because the
-    // address a name gives now is not the address the request gets later.
-    name == "localhost"
+    is_a_reserved_localhost_name(name)
+}
+
+/// Whether this name is one RFC 6761 reserves for loopback: `localhost`, or
+/// anything under `.localhost`.
+///
+/// The reservation covers the subtree whole. A registry may not grant a name
+/// inside it, so nobody else can come to own one, and a resolver is expected to
+/// answer it on loopback. macOS answers `foo.localhost` with 127.0.0.1 today.
+///
+/// This is a claim about the reservation, not about what a resolver did, and
+/// that is the difference from `localhost.localdomain`. That name reads as this
+/// machine while being ordinary: it sits in an ordinary namespace, nothing
+/// stops it resolving anywhere, and macOS does not answer it at all. It is not
+/// trusted here, and should not be added back.
+///
+/// What is left is a resolver that ignores the reservation and answers a
+/// `.localhost` name with a real address. Resolving the name here would not
+/// close that, because the address a name gives while the gate is deciding is
+/// not the address the request gets afterwards.
+fn is_a_reserved_localhost_name(name: &str) -> bool {
+    if name == "localhost" {
+        return true;
+    }
+    // An empty label is not a name anything answers, so `.localhost` on its own
+    // and `..localhost` are not inside the subtree.
+    match name.strip_suffix(".localhost") {
+        Some(before) => !before.is_empty() && !before.ends_with('.'),
+        None => false,
+    }
 }
 
 impl Model {
@@ -228,6 +250,32 @@ mod tests {
     }
 
     #[test]
+    fn the_localhost_subtree_is_this_machine_because_nobody_else_may_own_it() {
+        // RFC 6761 reserves `.localhost` whole, so no registry hands one of
+        // these to anyone, and macOS answers them on loopback. Someone running
+        // a model at `ollama.localhost` is not sending their résumé anywhere,
+        // and a consent gate that says otherwise gets clicked through.
+        for endpoint in [
+            "http://foo.localhost:11434/v1",
+            "http://ollama.localhost/v1",
+            "http://a.b.localhost:8080/v1",
+            "http://foo.localhost.:11434/v1",
+            "http://FOO.LOCALHOST:11434/v1",
+        ] {
+            let model = Model {
+                endpoint: endpoint.into(),
+                model: "m".into(),
+                consent: Consent::default(),
+            };
+            assert_eq!(
+                model.may_send_document(),
+                Permission::Local,
+                "{endpoint} should be local"
+            );
+        }
+    }
+
+    #[test]
     fn an_address_this_mac_answers_is_local_however_it_is_written() {
         // Every one of these reaches a socket on this machine. Reading one as
         // somebody else's computer is not a safe mistake: it asks consent to
@@ -303,6 +351,15 @@ mod tests {
             // A Linux hosts-file convention that macOS does not answer. It
             // reads as this machine and is whatever a resolver says it is.
             "http://localhost.localdomain:11434/v1",
+            // The reserved subtree is a suffix, not a substring. Each of these
+            // is an ordinary name that somebody else can own.
+            "https://foo.localhost.evil.example/v1",
+            "https://xlocalhost/v1",
+            "https://my-localhost/v1",
+            // An empty label is nothing a resolver answers, so it is not a way
+            // into the subtree either.
+            "http://.localhost/v1",
+            "http://..localhost/v1",
         ] {
             let model = Model {
                 endpoint: endpoint.into(),
