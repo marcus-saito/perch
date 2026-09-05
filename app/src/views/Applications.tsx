@@ -277,10 +277,10 @@ export function ApplicationsView({ onChanged }: { onChanged: () => void }) {
 
               {rows !== null && rows.length === 0 && (
                 <Empty title="Nothing sent yet">
-                  Perch records an application once you have sent it; it takes
-                  no part in the sending itself. Apply on a company's own board,
-                  then run <code>apps mark &lt;ref&gt; in-flight</code> and the
-                  role turns up here.
+                  Perch records an application once you have sent it, and takes
+                  no part in the sending itself. After a fill, the sheet offers
+                  to record it. From the terminal,{" "}
+                  <code>apps mark &lt;ref&gt; in-flight</code> does the same.
                 </Empty>
               )}
 

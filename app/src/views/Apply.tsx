@@ -63,6 +63,10 @@ export function ApplyView({
   const [caveat, setCaveat] = useState<string | null>(null);
   // Set when the press did something other than start a fill.
   const [started, setStarted] = useState<Started | null>(null);
+  // The application is the person's to send. Once they say they have, Perch
+  // records it the way `apps mark <ref> in-flight` does, and says so here.
+  const [recorded, setRecorded] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
 
   const sheet = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -218,6 +222,23 @@ export function ApplyView({
       });
   };
 
+  const recordSent = () => {
+    if (recording || recorded) return;
+    setRecording(true);
+    setTrouble(null);
+    api
+      .markApplication(reference, "in_flight")
+      .then(() =>
+        setRecorded(
+          "Recorded under Applications as in flight. Perch had no part in sending it, and will not chase it.",
+        ),
+      )
+      .catch((err) =>
+        setTrouble(`That application is not recorded yet. ${plainly(err)}`),
+      )
+      .finally(() => setRecording(false));
+  };
+
   const openInBrowser = () => {
     if (!url || opening) return;
     setOpening(true);
@@ -305,6 +326,7 @@ export function ApplyView({
                   <div style={{ marginTop: 8 }}>{fileNote(report)}</div>
                 )}
                 {caveat && <div style={{ marginTop: 8 }}>{caveat}</div>}
+                {recorded && <div style={{ marginTop: 8 }}>{recorded}</div>}
               </div>
             )}
 
@@ -539,6 +561,16 @@ export function ApplyView({
                   onClick={openAndFill}
                 >
                   {opening ? "Opening the form" : "Open and fill"}
+                </button>
+              )}
+              {fillable && step === LAST && opened && !recorded && (
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={recording}
+                  onClick={recordSent}
+                >
+                  Record that you sent it
                 </button>
               )}
               {fillable && step === LAST && (opened || started) && (
