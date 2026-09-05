@@ -256,10 +256,11 @@ impl EchoOff {
 fn main() {
     end_quietly_on_closed_pipe();
     if let Err(err) = run() {
-        // Plain, lowercase, no stack of context.
-        eprintln!("{err}");
+        // Plain, lowercase, no stack of context. A complaint that runs to a
+        // second line keeps its indent, so a TOML error reads as one thing.
+        eprintln!("{}", err.to_string().replace('\n', "\n  "));
         for cause in err.chain().skip(1) {
-            eprintln!("  {cause}");
+            eprintln!("  {}", cause.to_string().replace('\n', "\n  "));
         }
         std::process::exit(1);
     }
