@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT"
-repository = "https://github.com/marcus/perch"
+repository = "https://github.com/marcus-saito/perch"
 
 [workspace.dependencies]
 perch-core = { path = "crates/core" }
