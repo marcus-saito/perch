@@ -262,10 +262,11 @@ impl Store {
                 return Err(Error::AlreadyWatched(found.company_name.clone()));
             }
             // Watching again picks up exactly where it left off: every role,
-            // dismissal and observed event is still there.
+            // dismissal and observed event is still there. The name is the one
+            // exception, because the person has just said what to call it.
             self.conn.execute(
-                "UPDATE company SET unwatched_at = NULL WHERE id = ?1",
-                params![existing.id],
+                "UPDATE company SET unwatched_at = NULL, name = ?2 WHERE id = ?1",
+                params![existing.id, found.company_name],
             )?;
             let board = self
                 .boards()?
@@ -1518,6 +1519,30 @@ mod tests {
             !report.quiet(),
             "a sync that recorded a move reported nothing new"
         );
+    }
+
+    #[test]
+    fn watching_a_company_again_takes_the_name_it_was_given_this_time() {
+        let dir = std::env::temp_dir().join(format!("perch-rename-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let mut store = Store::open(&dir.join("perch.db")).unwrap();
+        let found = |name: &str| DetectedBoard {
+            ats: Ats::Ashby,
+            token: "cursor".into(),
+            url: "https://jobs.ashbyhq.com/cursor".into(),
+            company_name: name.into(),
+            fill_supported: true,
+        };
+        store.watch(&found("cursor"), NOW).unwrap();
+        assert!(store.unwatch("cursor", NOW).unwrap());
+        let again = store.watch(&found("Cursor"), NOW).unwrap();
+        assert_eq!(again.company_name, "Cursor");
+        assert_eq!(
+            store.boards().unwrap().len(),
+            1,
+            "the same board, not a second one"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

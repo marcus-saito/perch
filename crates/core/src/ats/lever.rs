@@ -105,9 +105,10 @@ impl AtsAdapter for Lever {
             ats: Ats::Lever,
             token: token.clone(),
             url: Self::board_url(&token),
-            // Lever's postings carry no company name field, so the token is
-            // the only name the board gives.
-            company_name: token.clone(),
+            // Lever's postings carry no company name field. The name the
+            // person typed is kept when they typed one, and the token stands
+            // in when they gave an address.
+            company_name: super::name_as_typed(input, &token),
             fill_supported: self.fill_supported(),
         }))
     }

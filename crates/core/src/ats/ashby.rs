@@ -82,10 +82,10 @@ impl AtsAdapter for Ashby {
             ats: Ats::Ashby,
             token: token.clone(),
             url: Self::board_url(&token),
-            // Ashby's payload never names the company, so the token stands in
-            // for it. It is the name jobs.ashbyhq.com shows in the address,
-            // and usually the word the person typed.
-            company_name: token.clone(),
+            // Ashby's payload never names the company. The name the person
+            // typed is kept when they typed one, and the token stands in when
+            // they gave an address.
+            company_name: super::name_as_typed(input, &token),
             fill_supported: self.fill_supported(),
         }))
     }

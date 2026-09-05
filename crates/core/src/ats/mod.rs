@@ -43,6 +43,21 @@ pub trait AtsAdapter: Send + Sync {
     ) -> Result<Option<String>>;
 }
 
+/// The name a board goes by when its payload never states one.
+///
+/// Ashby and Lever name nothing, so the only name the board gives is the
+/// token, which is lowercase and stripped of spaces. When the person typed a
+/// plain name rather than an address, that name is the one they will look for
+/// in the feed, so it is kept as typed. An address gives no name to keep.
+pub(crate) fn name_as_typed(input: &str, token: &str) -> String {
+    let typed = input.trim();
+    if typed.is_empty() || typed.contains("://") || typed.contains('/') {
+        token.to_string()
+    } else {
+        typed.to_string()
+    }
+}
+
 /// Every adapter Perch knows, in the order `watch add` tries them.
 pub fn adapters() -> Vec<Box<dyn AtsAdapter>> {
     vec![
@@ -95,6 +110,19 @@ mod tests {
             );
         }
         assert_eq!(named, "Greenhouse, Lever, Ashby and JSON-LD");
+    }
+
+    #[test]
+    fn a_plain_name_is_kept_the_way_the_person_typed_it() {
+        assert_eq!(name_as_typed("Val Town", "valtown"), "Val Town");
+        assert_eq!(name_as_typed("  Cursor ", "cursor"), "Cursor");
+        // An address names nothing, so the token stands in.
+        assert_eq!(
+            name_as_typed("https://jobs.ashbyhq.com/cursor", "cursor"),
+            "cursor"
+        );
+        assert_eq!(name_as_typed("jobs.lever.co/fly", "fly"), "fly");
+        assert_eq!(name_as_typed("", "fly"), "fly");
     }
 
     #[test]
