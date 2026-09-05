@@ -388,7 +388,8 @@ export function FeedView({
                 <>
                   {detail.applied && (
                     <p className="muted" style={{ ...footnote, marginTop: 4 }}>
-                      You have already applied to this one. {detail.applied}
+                      You have applied to this one. It is marked{" "}
+                      {detail.applied.toLowerCase()}.
                     </p>
                   )}
 
