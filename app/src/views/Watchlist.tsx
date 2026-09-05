@@ -138,9 +138,9 @@ export function WatchlistView({ onChanged }: { onChanged: () => void }) {
           <div>
             <h1 className="pane-title">Watchlist</h1>
             <p className="pane-sub">
-              Perch reads each of these boards about every half hour while this
-              Mac is awake, and backs off to once a day for the ones that have
-              gone quiet.
+              Perch reads these boards when you ask it to: sync from the feed
+              or the command palette, or perch sync in the terminal. Nothing runs
+              in the background.
             </p>
           </div>
         </header>
