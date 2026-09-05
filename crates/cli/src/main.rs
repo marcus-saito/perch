@@ -326,6 +326,9 @@ fn run() -> Result<()> {
 }
 
 fn watch_add(store: &mut Store, input: &str, now: OffsetDateTime) -> Result<()> {
+    if input.trim().is_empty() {
+        anyhow::bail!("name a company, or give its board URL or careers page");
+    }
     let http = Http::new()?;
     println!("Looking for a board for {input}…");
 

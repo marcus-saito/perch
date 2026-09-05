@@ -444,6 +444,9 @@ fn watchlist(state: State<'_, App>) -> Answer<Vec<BoardDto>> {
 
 #[tauri::command]
 fn watch_add(state: State<'_, App>, input: String) -> Answer<String> {
+    if input.trim().is_empty() {
+        return Err("Name a company, or give its board URL or careers page.".to_string());
+    }
     let now = OffsetDateTime::now_utc();
     let found = detect_board(&input, &state.http)
         .map_err(plainly)?
@@ -1670,6 +1673,33 @@ Rust, Go, Tokio, gRPC, PostgreSQL";
         let dir = std::env::temp_dir().join(format!("perch-import-{}-{name}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    #[test]
+    fn an_empty_name_is_refused_before_any_board_is_asked() {
+        use tauri::Manager;
+        let dir = std::env::temp_dir().join(format!("perch-empty-name-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let paths = super::Paths::at(&dir);
+        paths.ensure().unwrap();
+        let store = super::Store::open(&paths.db()).unwrap();
+        let app = tauri::test::mock_builder()
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        app.manage(super::App {
+            store: super::Mutex::new(store),
+            paths,
+            http: super::Http::new().unwrap(),
+            import: super::Mutex::new(Vec::new()),
+        });
+        // Nothing here reaches the network: the answer comes back before any
+        // adapter is asked, which is the point of refusing up front.
+        let answer = super::watch_add(app.state(), "   ".into());
+        assert_eq!(
+            answer,
+            Err("Name a company, or give its board URL or careers page.".to_string())
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
