@@ -588,6 +588,38 @@ function emptyState(
     );
   }
 
+  // Rules holding roles back comes before "nothing posted": with --fresh, the
+  // roles that went up today are still there, and saying nothing was posted
+  // would be untrue. The sentence and the command it offers describe the same
+  // set the person is looking at, filters included, as the CLI's do.
+  if (!options.all && feed.openButUnmatched > 0) {
+    const n = feed.openButUnmatched;
+    const where = options.company
+      ? `at ${options.company}`
+      : "on the boards you watch";
+    const what = options.fresh
+      ? n === 1
+        ? `One role went up ${where} in the last day`
+        : `${n} roles went up ${where} in the last day`
+      : n === 1
+        ? `One role is open ${where}`
+        : `${n} roles are open ${where}`;
+    const aside =
+      n === 1
+        ? "and your rules set it aside."
+        : "and your rules set every one of them aside.";
+    return (
+      <Empty title="Open, but held back by your rules.">
+        {what}, {aside}{" "}
+        <CommandWord
+          text={options.fresh ? "feed --fresh --all" : "feed --all"}
+          onRun={() => onOptions({ ...options, all: true })}
+        />{" "}
+        shows them anyway, in the same order.
+      </Empty>
+    );
+  }
+
   if (options.fresh) {
     return (
       <Empty title="Nothing posted in the last day.">
@@ -597,22 +629,6 @@ function emptyState(
           onRun={() => onOptions({ ...options, fresh: false })}
         />{" "}
         shows everything still open.
-      </Empty>
-    );
-  }
-
-  if (!options.all && feed.openButUnmatched > 0) {
-    const many = feed.openButUnmatched !== 1;
-    return (
-      <Empty title="Open, but held back by your rules.">
-        {many
-          ? `${feed.openButUnmatched} roles are open on the boards you watch, and your rules set every one of them aside.`
-          : "One role is open on the boards you watch, and your rules set it aside."}{" "}
-        <CommandWord
-          text="feed --all"
-          onRun={() => onOptions({ ...options, all: true })}
-        />{" "}
-        shows them anyway, in the same order.
       </Empty>
     );
   }
