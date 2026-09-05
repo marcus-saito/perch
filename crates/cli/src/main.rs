@@ -952,6 +952,7 @@ fn model_set(paths: &Paths, style: &Style, name: &str, endpoint: Option<&str>) -
 
     println!("{name} will read résumés.");
     println!("{}", model.consequence());
+    say_if_ollama_here_lacks_it(style, &model);
     if matches!(model.may_send_document(), LlmPermission::Refused { .. }) {
         println!();
         println!("`perch model endpoint <url> --allow-resume` says it may.");
@@ -1000,6 +1001,31 @@ fn model_endpoint(paths: &Paths, style: &Style, url: &str, allow_resume: bool) -
     say_how_a_key_is_given(style, &model);
     say_a_key_may_be_left_behind(style, left_behind.as_deref());
     Ok(())
+}
+
+/// A typo in a model name is cheapest to catch at the moment it is typed.
+/// When the endpoint is Ollama on this Mac, Ollama can be asked what it has,
+/// and a name it does not list is said so. Any other endpoint is not asked:
+/// its list is not Perch's to know, and the name is taken as given.
+fn say_if_ollama_here_lacks_it(style: &Style, model: &LlmModel) {
+    if model.endpoint.trim().trim_end_matches('/') != format!("{OLLAMA}/v1") {
+        return;
+    }
+    let Some(installed) = LlmClient::new().ok().and_then(|c| c.probe_ollama()) else {
+        return;
+    };
+    if installed.iter().any(|m| m.name == model.model) {
+        return;
+    }
+    println!();
+    println!("Ollama on this Mac does not list {}.", model.model);
+    println!(
+        "{}",
+        style.dim(&format!(
+            "ollama pull {}  fetches it  ·  perch model list  shows what is installed",
+            model.model
+        ))
+    );
 }
 
 /// A remote endpoint usually wants a key, and the key has its own command
