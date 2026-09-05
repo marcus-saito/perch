@@ -187,7 +187,14 @@ function heldBack(rows: Row[]): string | null {
   return parts.length ? `${upper(parts.join(", "))}.` : null;
 }
 
-export function ImportView({ onWritten }: { onWritten: () => void }) {
+export function ImportView({
+  onWritten,
+  onBack,
+}: {
+  onWritten: () => void;
+  /** Esc, when there is nothing on this screen for it to close. */
+  onBack: () => void;
+}) {
   const [ready, setReady] = useState<ImportReady | null>(null);
   const [read, setRead] = useState<ImportRead | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
@@ -317,6 +324,21 @@ export function ImportView({ onWritten }: { onWritten: () => void }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [reviewing, editing, rows, selected, setMark, beginEdit]);
+
+  // Esc leaves the way the rail does, back to the profile, when nothing on
+  // this screen is open. During a review it closes nothing: the proposals stay
+  // until they are written or discarded, which are both deliberate presses.
+  useEffect(() => {
+    if (reviewing || editing !== null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (document.querySelector(".palette-scrim.is-open")) return;
+      e.preventDefault();
+      onBack();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [reviewing, editing, onBack]);
 
   const choose = useCallback(async () => {
     setTrouble(null);
@@ -568,7 +590,7 @@ export function ImportView({ onWritten }: { onWritten: () => void }) {
                 { keys: ["e"], label: "edit" },
                 { keys: ["x"], label: "skip" },
               ]
-            : []
+            : [{ keys: ["esc"], label: "back to profile" }]
         }
         undoNote={reviewing ? undoNote : null}
       />

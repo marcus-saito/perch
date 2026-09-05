@@ -202,7 +202,9 @@ export function App() {
         )}
         {/* No refresh key: writing the profile refreshes the other views, and
             remounting this one would throw away what it has just said. */}
-        {view === "import" && <ImportView onWritten={refresh} />}
+        {view === "import" && (
+          <ImportView onWritten={refresh} onBack={() => setView("profile")} />
+        )}
       </div>
       {applyRef !== null && (
         <ApplyView reference={applyRef} onClose={() => setApplyRef(null)} />
