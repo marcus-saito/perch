@@ -428,9 +428,7 @@ export function ApplyView({
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={docLine}>
                             <span className="doc-name">{doc.name}</span>
-                            {doc.kind && (
-                              <span className="tag">{fileType(doc.path)}</span>
-                            )}
+                            <span className="tag">{fileType(doc.path)}</span>
                           </span>
                           <span
                             className="note mono"
