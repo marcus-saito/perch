@@ -936,6 +936,7 @@ fn model_set(paths: &Paths, style: &Style, name: &str, endpoint: Option<&str>) -
     let was = model.host().filter(|_| !model.is_local());
     model.model = name.to_string();
     if let Some(endpoint) = endpoint {
+        usable_endpoint(endpoint)?;
         model.endpoint = endpoint.to_string();
         // Pointing somewhere new withdraws consent given for somewhere else.
         model.consent.resume_import_may_leave_this_mac = false;
@@ -955,7 +956,24 @@ fn model_set(paths: &Paths, style: &Style, name: &str, endpoint: Option<&str>) -
     Ok(())
 }
 
+/// An endpoint has to be an address Perch could call before it is written
+/// down. The consent gate reads the host off the same parse, so a string it
+/// cannot parse would be stored as "no model" and never asked about.
+fn usable_endpoint(url: &str) -> Result<()> {
+    let probe = LlmModel {
+        endpoint: url.to_string(),
+        ..LlmModel::default()
+    };
+    if probe.host().is_none() {
+        anyhow::bail!(
+            "{url} is not an address Perch can ask. An OpenAI-compatible base URL starts with http:// or https://, like https://api.example.com/v1"
+        );
+    }
+    Ok(())
+}
+
 fn model_endpoint(paths: &Paths, style: &Style, url: &str, allow_resume: bool) -> Result<()> {
+    usable_endpoint(url)?;
     let mut model = LlmModel::load(&paths.model())?;
     let was = model.host().filter(|_| !model.is_local());
     model.endpoint = url.to_string();
