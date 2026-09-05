@@ -94,7 +94,7 @@ export function App() {
     {
       group: "Watching",
       cmd: "watch add <company>",
-      desc: "detect ATS, start monitoring",
+      desc: "find a company's board and start watching it",
       run: () => setView("watchlist"),
     },
     {
@@ -122,7 +122,7 @@ export function App() {
     {
       group: "Feed",
       cmd: "feed --fresh",
-      desc: "posted in the last 24 hours",
+      desc: "only what went up in the last day",
       run: () => {
         setFeedOptions({ fresh: true, all: false, company: null });
         setView("feed");
@@ -131,7 +131,7 @@ export function App() {
     {
       group: "Feed",
       cmd: "feed --all",
-      desc: "every open role, rules aside",
+      desc: "every open role, whether or not a rule fires on it",
       run: () => {
         setFeedOptions({ fresh: false, all: true, company: null });
         setView("feed");
@@ -147,8 +147,8 @@ export function App() {
 
     {
       group: "Profile",
-      cmd: "profile edit",
-      desc: "open profile.toml",
+      cmd: "profile show",
+      desc: "the profile as Perch reads it",
       run: () => setView("profile"),
     },
     {
