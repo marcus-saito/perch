@@ -1,0 +1,62 @@
+# The invariants that matter most in Perch are encoded as tests rather than
+# prose: no emitted script ever submits, no unanchored field is ever offered,
+# no résumé is read before consent. This workflow runs those tests, and the
+# lints that keep them honest, on every change.
+#
+# It runs on macOS because that is where Perch ships. The Tauri crate compiles
+# there with no system packages, and the keychain code links against the
+# native API the app actually uses.
+
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  checks:
+    name: fmt, clippy, tests, tsc
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: The source is formatted
+        run: cargo fmt --all -- --check
+
+      - name: Clippy reports no warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Every test passes
+        run: cargo test --workspace
+
+      - name: The app type-checks
+        working-directory: app
+        run: |
+          npm ci --no-audit --no-fund
+          npx tsc --noEmit
