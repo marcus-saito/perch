@@ -1124,6 +1124,7 @@ fn profile_show(paths: &Paths, style: &Style) -> Result<()> {
         ("Work authorisation", profile.work_authorisation.clone()),
         ("GitHub", profile.links.github.clone()),
         ("Website", profile.links.website.clone()),
+        ("LinkedIn", profile.links.linkedin.clone()),
         ("Skills", profile.skills.join(", ")),
     ] {
         println!("  {}", style.dim(label));
@@ -1141,6 +1142,22 @@ fn profile_show(paths: &Paths, style: &Style) -> Result<()> {
         println!("  {}", style.dim(&format!("Position {}", n + 1)));
         println!("  {} · {}", role.company, role.title);
         println!("  {}", style.dim(&role.dates));
+        println!();
+    }
+    // The documents are what `apply` attaches, so they belong in the reading.
+    for (n, document) in profile.documents.iter().enumerate() {
+        println!("  {}", style.dim(&format!("Document {}", n + 1)));
+        let name = if document.name.trim().is_empty() {
+            file_name(&document.path)
+        } else {
+            document.name.clone()
+        };
+        if document.kind.trim().is_empty() {
+            println!("  {name}");
+        } else {
+            println!("  {name} · {}", document.kind);
+        }
+        println!("  {}", style.dim(&document.path));
         println!();
     }
     println!(
