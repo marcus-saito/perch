@@ -146,6 +146,7 @@ const responses: Record<string, unknown> = {
     hasBoards: true,
     rulesError: null,
   },
+  last_read: "read 11 minutes ago",
   detail: {
     role: feedRoles[1],
     blocks: [
