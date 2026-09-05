@@ -178,6 +178,11 @@ from a job board or a résumé is that source's own words and is never rewritten
 
 ## Fixture data: use these companies across every view, consistently
 
+The postings, descriptions and board histories in the mockups are invented for
+the mockups. The company names are real and are used as names only. Nothing a
+mockup shows is a real listing, and the README uses captures of real data
+instead.
+
 Sourcegraph (Greenhouse) · Oxide Computer (Lever) · Val Town (Ashby) ·
 Fly.io (Ashby) · Warp (Greenhouse) · Tigris Data (Lever) · Modal (Ashby) ·
 Ramp (Greenhouse) · Recurse Center (JSON-LD, no fill support) ·
