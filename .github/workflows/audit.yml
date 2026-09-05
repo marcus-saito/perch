@@ -18,8 +18,12 @@ on:
     - cron: "17 6 * * 1"
   workflow_dispatch:
 
+# The audit action posts its result as a check run, which needs checks: write.
+# On a pull request GitHub grants that; on a push to main it does not, and the
+# run failed after finding nothing.
 permissions:
   contents: read
+  checks: write
   issues: write
 
 jobs:
