@@ -956,6 +956,7 @@ fn model_set(paths: &Paths, style: &Style, name: &str, endpoint: Option<&str>) -
         println!();
         println!("`perch model endpoint <url> --allow-resume` says it may.");
     }
+    say_how_a_key_is_given(style, &model);
     say_a_key_may_be_left_behind(style, left_behind.as_deref());
     Ok(())
 }
@@ -996,8 +997,24 @@ fn model_endpoint(paths: &Paths, style: &Style, url: &str, allow_resume: bool) -
         println!();
         println!("`perch model list` shows what it can run.");
     }
+    say_how_a_key_is_given(style, &model);
     say_a_key_may_be_left_behind(style, left_behind.as_deref());
     Ok(())
+}
+
+/// A remote endpoint usually wants a key, and the key has its own command
+/// because it must never be an argument. Said once, at the moment the
+/// endpoint is chosen, rather than discovered at the first refused request.
+fn say_how_a_key_is_given(style: &Style, model: &LlmModel) {
+    if model.host().is_none() || model.is_local() {
+        return;
+    }
+    println!();
+    println!(
+        "{}",
+        style
+            .dim("If the endpoint wants a key, `perch model key` puts one in this Mac's keychain.")
+    );
 }
 
 /// Put the key for the configured endpoint in the system keychain, or take it
