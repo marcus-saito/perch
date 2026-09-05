@@ -1509,6 +1509,15 @@ fn apply(
             }),
     };
 
+    // A file that is not there cannot be attached. Planning it anyway would
+    // count a value the form never gets, so the plan is built without it and
+    // the Attached step says why.
+    let missing = attached
+        .as_ref()
+        .filter(|(_, path)| !std::path::Path::new(path).is_file())
+        .cloned();
+    let attached = if missing.is_some() { None } else { attached };
+
     let Some(plan) = perch_fill::plan::build(
         role.ats,
         &role.url,
@@ -1618,8 +1627,8 @@ fn apply(
     // Step two: the one file, named.
     println!("  {}", style.heading("Attached"));
     println!();
-    match &attached {
-        Some((name, path)) => {
+    match (&attached, &missing) {
+        (Some((name, path)), _) => {
             println!("  {name}");
             println!("  {}", style.dim(path));
             println!(
@@ -1627,7 +1636,18 @@ fn apply(
                 style.dim(&wrap("Perch attaches that file as it stands.", 2))
             );
         }
-        None => {
+        (None, Some((name, path))) => {
+            println!("  {name}");
+            println!("  {}", style.dim(path));
+            println!(
+                "  {}",
+                wrap(
+                    "There is no file at that path, so nothing is attached. The rest of the form is filled either way.",
+                    2
+                )
+            );
+        }
+        (None, None) => {
             println!("  No document, so the file box stays empty.");
             println!(
                 "  {}",
