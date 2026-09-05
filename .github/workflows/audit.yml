@@ -1,0 +1,45 @@
+# Known vulnerabilities in what Perch depends on. Runs when a lockfile changes
+# and once a week regardless, because an advisory can land with no change here.
+name: audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Cargo.lock
+      - app/package-lock.json
+      - .github/workflows/audit.yml
+  pull_request:
+    paths:
+      - Cargo.lock
+      - app/package-lock.json
+      - .github/workflows/audit.yml
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  cargo:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  npm:
+    name: npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: The app's runtime dependencies carry no known high or critical advisory
+        working-directory: app
+        run: npm audit --omit=dev --audit-level=high
