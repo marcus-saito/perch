@@ -10,6 +10,7 @@ import {
   type Provenance,
 } from "../lib/api";
 import { HintBar, type Hint } from "../components/HintBar";
+import { Count, count } from "../lib/words";
 
 /**
  * The application sheet: read it, attach a file, open the form.
@@ -630,14 +631,14 @@ function outcome(report: FillReport | null, silence: boolean): string {
     return "Nothing was typed. The form is open and untouched.";
   }
   if (report.missing.length > 0) {
-    return `${spelled(report.filled)} of ${spelled(report.planned).toLowerCase()} values are in the form, which is open in a window of its own. ${listed(
+    return `${Count(report.filled)} of ${count(report.planned)} values are in the form, which is open in a window of its own. ${listed(
       report.missing,
     )} ${report.missing.length === 1 ? "was not a box" : "were not boxes"} on it.`;
   }
   if (report.filled < report.planned) {
-    return `${spelled(report.filled)} of ${spelled(report.planned).toLowerCase()} values are in the form, which is open in a window of its own.`;
+    return `${Count(report.filled)} of ${count(report.planned)} values are in the form, which is open in a window of its own.`;
   }
-  return `${spelled(report.filled)} ${
+  return `${Count(report.filled)} ${
     report.filled === 1 ? "value is" : "values are"
   } in the form, which is open in a window of its own.`;
 }
@@ -680,33 +681,17 @@ function blanksLine(flagged: number, left: number): string | null {
   const parts: string[] = [];
   if (flagged > 0) {
     parts.push(
-      `${spelled(flagged)} ${flagged === 1 ? "box stays" : "boxes stay"} empty on purpose`,
+      `${Count(flagged)} ${flagged === 1 ? "box stays" : "boxes stay"} empty on purpose`,
     );
   }
   if (left > 0) {
     parts.push(
-      `${flagged > 0 ? spelled(left).toLowerCase() : spelled(left)} ${
+      `${flagged > 0 ? count(left) : Count(left)} ${
         left === 1 ? "is yours" : "are yours"
       } to write`,
     );
   }
   return `${parts.join(", and ")}. Perch types nothing into any of them.`;
-}
-
-function spelled(n: number): string {
-  const words = [
-    "No",
-    "One",
-    "Two",
-    "Three",
-    "Four",
-    "Five",
-    "Six",
-    "Seven",
-    "Eight",
-    "Nine",
-  ];
-  return words[n] ?? String(n);
 }
 
 /** Whatever came back, said plainly, without the machinery around it. */

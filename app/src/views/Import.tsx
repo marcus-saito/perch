@@ -9,6 +9,7 @@ import {
 } from "../lib/api";
 import { HintBar } from "../components/HintBar";
 import { useQueue, type SetAside } from "../lib/keys";
+import { count as word } from "../lib/words";
 
 /**
  * Review import: what a model read out of a résumé, and what a person makes
@@ -67,20 +68,6 @@ function shown(row: Row): string {
   return filled.filter((part) => part !== "").join(" · ");
 }
 
-const WORDS = [
-  "no",
-  "one",
-  "two",
-  "three",
-  "four",
-  "five",
-  "six",
-  "seven",
-  "eight",
-  "nine",
-  "ten",
-];
-const word = (n: number) => WORDS[n] ?? String(n);
 const upper = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** A sentence, not a score: what will be written, and what will not. */

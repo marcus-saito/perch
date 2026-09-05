@@ -16,6 +16,7 @@ import {
   type RoleRow,
 } from "../lib/api";
 import { useQueue, type SetAside } from "../lib/keys";
+import { Count } from "../lib/words";
 import { Empty } from "../components/Empty";
 import { HintBar, type Hint } from "../components/HintBar";
 
@@ -600,10 +601,10 @@ function emptyState(
     const what = options.fresh
       ? n === 1
         ? `One role went up ${where} in the last day`
-        : `${n} roles went up ${where} in the last day`
+        : `${Count(n)} roles went up ${where} in the last day`
       : n === 1
         ? `One role is open ${where}`
-        : `${n} roles are open ${where}`;
+        : `${Count(n)} roles are open ${where}`;
     const aside =
       n === 1
         ? "and your rules set it aside."
