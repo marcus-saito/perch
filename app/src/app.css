@@ -49,6 +49,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
   flex: none;
   background: var(--paper);
 }
@@ -67,6 +68,8 @@
   font-family: var(--font-mono);
   font-size: var(--t-12);
 }
+
+.action-bar > .muted { flex: 1 1 220px; min-width: 0; }
 
 /* ---------- The application sheet --------------------------
    Layout only. Every colour is a token from perch.css, and there is

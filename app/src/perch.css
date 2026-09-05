@@ -143,7 +143,10 @@ body {
 /* ---------- Panes ---------------------------------------- */
 
 .stage { display: grid; grid-template-columns: 1fr; min-width: 0; overflow: hidden; }
-.stage.has-detail { grid-template-columns: minmax(380px, 1fr) minmax(420px, 1.05fr); }
+/* The rail is 208px and the window's minimum width is 880px, so the two
+   panes have 672px between them at the narrowest. Their minimums add up to
+   less than that; before they did not, and the detail pane ran off the edge. */
+.stage.has-detail { grid-template-columns: minmax(300px, 1fr) minmax(360px, 1.05fr); }
 
 .pane { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 .pane + .pane { border-left: 1px solid var(--rule); }
