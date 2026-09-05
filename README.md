@@ -7,6 +7,8 @@ from a profile you wrote yourself. You review the form and you submit it.
 No account, no backend, no telemetry. Everything stays on your machine, in
 files you can open.
 
+![The feed, with a role open beside it and the application controls below the posting's text.](.github/readme/feed-and-role.png)
+
 ## What Perch refuses to do
 
 **It never submits an application.** It fills a form from your profile and
@@ -146,6 +148,8 @@ to a careers index, or a link clicked inside the filled window, gets nothing.
 Three kinds of box are left empty on purpose, each saying so: ones Perch would
 have to guess at (a start date), ones that are yours to write (a cover
 letter), and demographic questions.
+
+![The review step of the apply sheet: each value beside where it came from, and the boxes left blank on purpose.](.github/readme/apply-sheet.png)
 
 ## The desktop app
 
