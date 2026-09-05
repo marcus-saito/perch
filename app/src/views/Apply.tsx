@@ -451,6 +451,11 @@ export function ApplyView({
                   Perch attaches the file you pick, byte for byte. It does not
                   keep a version you have not read.
                 </p>
+                {fill.attachmentCaveat && (
+                  <p className="note" style={{ marginTop: 8, maxWidth: "60ch" }}>
+                    {fill.attachmentCaveat}
+                  </p>
+                )}
               </section>
             )}
 

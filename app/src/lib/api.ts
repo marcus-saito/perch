@@ -129,16 +129,6 @@ export interface ModelState {
   ollamaRunning: boolean;
 }
 
-export interface FillPlanResult {
-  plan: Plan | null;
-  whatHappensNext: string;
-  /** Some boards run their own file picker and will not take a file. */
-  attachmentCaveat: string | null;
-  company: string;
-  title: string;
-  fillable: boolean;
-}
-
 export interface Settings {
   profile: Profile;
   profilePath: string;
@@ -224,6 +214,11 @@ export interface FillPlan {
   plan: Plan | null;
   /** What will happen and where it stops, in the app's own words. */
   whatHappensNext: string;
+  /**
+   * Set when the plan attaches a file: the form uploads it itself, and Perch
+   * cannot see from outside the page whether that landed.
+   */
+  attachmentCaveat: string | null;
   company: string;
   title: string;
   fillable: boolean;
