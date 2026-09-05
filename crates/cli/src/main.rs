@@ -576,13 +576,18 @@ fn feed(
             // The roles are there; the rules are holding them back. Both the
             // count and the suggested command have to describe the same set the
             // person is looking at, filters included.
+            let (roles, are) = if open_count == 1 {
+                ("role", "is")
+            } else {
+                ("roles", "are")
+            };
             let (what, escape) = match (&resolved, fresh) {
                 (Some((name, _)), true) => (
                     format!("went up at {name} in the last day"),
                     format!("perch feed --company {name} --fresh --all"),
                 ),
                 (Some((name, _)), false) => (
-                    format!("open at {name}"),
+                    format!("{are} open at {name}"),
                     format!("perch feed --company {name} --all"),
                 ),
                 (None, true) => (
@@ -590,18 +595,11 @@ fn feed(
                     "perch feed --fresh --all".to_string(),
                 ),
                 (None, false) => (
-                    "open on the boards you're watching".to_string(),
+                    format!("{are} open on the boards you watch"),
                     "perch feed --all".to_string(),
                 ),
             };
-            println!(
-                "  Nothing matched your rules. {open_count} {} {what}.",
-                if open_count == 1 {
-                    "role is"
-                } else {
-                    "roles are"
-                }
-            );
+            println!("  Nothing matched your rules. {open_count} {roles} {what}.");
             println!(
                 "  {}",
                 style.dim(&format!(
