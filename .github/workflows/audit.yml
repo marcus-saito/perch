@@ -1,5 +1,11 @@
 # Known vulnerabilities in what Perch depends on. Runs when a lockfile changes
 # and once a week regardless, because an advisory can land with no change here.
+#
+# cargo audit is run directly rather than through an action. The action files
+# one GitHub issue per informational warning on every scheduled run, and the
+# warnings here are unmaintained crates inside Tauri and the PDF reader that
+# Perch cannot replace. A real vulnerability fails this run, which is the
+# signal that matters; a warning is printed and nothing more.
 name: audit
 
 on:
@@ -18,13 +24,8 @@ on:
     - cron: "17 6 * * 1"
   workflow_dispatch:
 
-# The audit action posts its result as a check run, which needs checks: write.
-# On a pull request GitHub grants that; on a push to main it does not, and the
-# run failed after finding nothing.
 permissions:
   contents: read
-  checks: write
-  issues: write
 
 jobs:
   cargo:
@@ -32,9 +33,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: rustsec/audit-check@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          tool: cargo-audit
+      - name: No dependency carries a known vulnerability
+        run: cargo audit
 
   npm:
     name: npm audit
