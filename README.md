@@ -335,6 +335,13 @@ app that holds someone's profile.
 [`design/DESIGN.md`](design/DESIGN.md) holds the rules the interface and this
 file are written to.
 
+A release is built by `app/release.sh` on a Mac holding a Developer ID
+certificate and a `notarytool` keychain profile. It signs the app, has Apple
+notarize it, staples the ticket, builds the disk image from the stapled app,
+and notarizes and staples that too. The identity comes from an environment
+variable and the credential from the keychain, so nothing secret is written
+down.
+
 ## Licence
 
 MIT.
