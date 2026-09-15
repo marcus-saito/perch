@@ -99,9 +99,13 @@ html.dark .sheet-scrim {
   z-index: 60;
 }
 
+/* One height for every step. The Attach step has less in it than Review,
+   and a sheet that shrank to fit moved Continue up by a hundred pixels, so a
+   second press where the button had been landed outside the sheet. */
 .sheet {
   width: 720px;
   max-width: 100%;
+  height: 100%;
   max-height: 100%;
   display: flex;
   flex-direction: column;

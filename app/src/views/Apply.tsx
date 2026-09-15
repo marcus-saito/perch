@@ -260,12 +260,10 @@ export function ApplyView({
 
   return (
     <>
-      <div
-        className="sheet-scrim"
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget) onClose();
-        }}
-      >
+      {/* The scrim does not close the sheet. A review that took three steps
+          should not end on a click that missed a button; Esc and Close are
+          the two ways out, and both are deliberate. */}
+      <div className="sheet-scrim">
         <div
           className="sheet"
           role="dialog"
