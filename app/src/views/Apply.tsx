@@ -371,7 +371,7 @@ export function ApplyView({
                       Perch is not guessing at these
                     </div>
                     {plan.flagged.map((field) => (
-                      <div className="field" key={field.selector}>
+                      <div className="field" key={field.label}>
                         <div className="field-label">{field.label}</div>
                         <input
                           className="input flagged"
@@ -392,7 +392,7 @@ export function ApplyView({
                   <>
                     <div className="section-head">Left to you</div>
                     {plan.leftToYou.map((field) => (
-                      <div className="field" key={field.selector}>
+                      <div className="field" key={field.label}>
                         <div className="field-label">{field.label}</div>
                         <textarea
                           className="textarea by-design"
