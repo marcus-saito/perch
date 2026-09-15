@@ -263,10 +263,19 @@ impl Store {
             }
             // Watching again picks up exactly where it left off: every role,
             // dismissal and observed event is still there. The name is the one
-            // exception, because the person has just said what to call it.
+            // exception, because the person has just said what to call it. A
+            // name that is only the token is not one anyone chose: it is what
+            // an adapter falls back to when it was given an address, as the
+            // undo of stopping a watch does, so the name on record stays.
+            if found.company_name != found.token {
+                self.conn.execute(
+                    "UPDATE company SET name = ?2 WHERE id = ?1",
+                    params![existing.id, found.company_name],
+                )?;
+            }
             self.conn.execute(
-                "UPDATE company SET unwatched_at = NULL, name = ?2 WHERE id = ?1",
-                params![existing.id, found.company_name],
+                "UPDATE company SET unwatched_at = NULL WHERE id = ?1",
+                params![existing.id],
             )?;
             let board = self
                 .boards()?
@@ -1551,6 +1560,12 @@ mod tests {
             1,
             "the same board, not a second one"
         );
+        // Watching again by address, as the undo of stopping a watch does,
+        // gives the adapter only the token for a name, and that is no reason
+        // to lose the one on record.
+        assert!(store.unwatch("cursor", NOW).unwrap());
+        let by_address = store.watch(&found("cursor"), NOW).unwrap();
+        assert_eq!(by_address.company_name, "Cursor");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -13,6 +13,11 @@ import { useQueue } from "../lib/keys";
  * is simply watching again. The backend resumes with every role and dismissal
  * intact. The undo hands back the board's own URL rather than its token, so the
  * adapter that gets asked again is the one this row came from.
+ *
+ * Every change here reloads the list in place. Asking the app to refresh would
+ * remount this view, and a remount takes the pending `u` down with it the
+ * instant the hint bar offered it, along with the line saying what was just
+ * added. The other views read the store fresh when they are switched to.
  */
 type Row = Board & { reference: string };
 
@@ -29,7 +34,7 @@ function bare(url: string): string {
   return url.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
 }
 
-export function WatchlistView({ onChanged }: { onChanged: () => void }) {
+export function WatchlistView() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [trouble, setTrouble] = useState<string | null>(null);
@@ -80,14 +85,13 @@ export function WatchlistView({ onChanged }: { onChanged: () => void }) {
         setDraft("");
         setFound(company);
         await load();
-        onChanged();
       } catch (err) {
         if (onScreen.current) setAddTrouble(plainly(err));
       } finally {
         if (onScreen.current) setLooking(null);
       }
     },
-    [looking, load, onChanged],
+    [looking, load],
   );
 
   const open = useCallback(async (row: Row) => {
@@ -111,7 +115,6 @@ export function WatchlistView({ onChanged }: { onChanged: () => void }) {
           await api.watchRemove(key);
           if (onScreen.current) setTrouble(null);
           await load();
-          onChanged();
         } catch (err) {
           if (onScreen.current) setTrouble(plainly(err));
           // Nothing was set aside, so there is nothing to put back.
@@ -122,7 +125,6 @@ export function WatchlistView({ onChanged }: { onChanged: () => void }) {
             await api.watchAdd(url);
             if (onScreen.current) setTrouble(null);
             await load();
-            onChanged();
           } catch (err) {
             if (onScreen.current) setTrouble(plainly(err));
           }

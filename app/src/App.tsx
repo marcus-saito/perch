@@ -191,9 +191,9 @@ export function App() {
         {view === "applications" && (
           <ApplicationsView key={`apps-${refreshKey}`} onChanged={refresh} />
         )}
-        {view === "watchlist" && (
-          <WatchlistView key={`watch-${refreshKey}`} onChanged={refresh} />
-        )}
+        {/* No refresh key and no refresh: the list reloads in place so the
+            undo the hint bar offers is still there to press. */}
+        {view === "watchlist" && <WatchlistView />}
         {view === "profile" && (
           <ProfileView
             key={`profile-${refreshKey}`}
