@@ -131,6 +131,10 @@ const feedRoles = roles.map(
           ? "Ashby"
           : "Greenhouse",
     fillSupported: company !== "Recurse Center",
+    whyNotFillable:
+      company === "Recurse Center"
+        ? "Perch can read JSON-LD boards but not fill their forms, so the role opens in your browser."
+        : null,
     signal,
     freshness,
     bucket,
@@ -196,6 +200,7 @@ const responses: Record<string, unknown> = {
       url: "https://jobs.lever.co/oxidecomputer",
       checked: "checked 11 minutes ago",
       fillSupported: true,
+      whyNotFillable: null,
       history: "3 roles seen since Perch started watching, 1 still open.",
     },
     {
@@ -205,6 +210,7 @@ const responses: Record<string, unknown> = {
       url: "https://jobs.ashbyhq.com/astral",
       checked: "checked an hour ago",
       fillSupported: true,
+      whyNotFillable: null,
       history: "2 roles seen since Perch started watching, 2 still open.",
     },
     {
@@ -214,6 +220,8 @@ const responses: Record<string, unknown> = {
       url: "https://www.recurse.com/jobs",
       checked: "checked two hours ago",
       fillSupported: false,
+      whyNotFillable:
+        "Perch can read JSON-LD boards but not fill their forms, so the role opens in your browser.",
       history: "1 role seen since Perch started watching, 1 still open.",
     },
     {
@@ -223,6 +231,7 @@ const responses: Record<string, unknown> = {
       url: "https://boards.greenhouse.io/warp",
       checked: "checked yesterday",
       fillSupported: true,
+      whyNotFillable: null,
       history: "6 roles seen since Perch started watching, 1 still open.",
     },
   ],

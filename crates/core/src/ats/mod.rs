@@ -21,6 +21,18 @@ pub trait AtsAdapter: Send + Sync {
     /// interface says so in those words.
     fn fill_supported(&self) -> bool;
 
+    /// Whether this particular board can be filled today.
+    ///
+    /// Most adapters answer with [`AtsAdapter::fill_supported`]. Ashby is the
+    /// exception: a company can switch its hosted page off while the listing
+    /// API goes on handing out addresses on it, and every one of those is a
+    /// page that says not found. Asked at every sync, so a board that changes
+    /// its mind is caught the next time it is read. `Ok(None)` means the
+    /// question could not be asked, and the answer on record stands.
+    fn fills_now(&self, _token: &str, _http: &Http) -> Result<Option<bool>> {
+        Ok(Some(self.fill_supported()))
+    }
+
     /// Work out whether `input` names a board on this ATS. `input` is whatever
     /// the person typed: a company name, a board URL, a careers page.
     /// `Ok(None)` means "not this one": try the next adapter.
@@ -41,6 +53,24 @@ pub trait AtsAdapter: Send + Sync {
         external_id: &str,
         http: &Http,
     ) -> Result<Option<String>>;
+}
+
+/// Why a board Perch reads cannot be filled, in one sentence for the screen.
+///
+/// Two cases look alike from the outside and are not: an ATS Perch has no
+/// filler for, and an Ashby company that switched its hosted page off, whose
+/// roles now point at pages that say not found. The second is said as what it
+/// is, because "opens in the browser" would open that page.
+pub fn why_not_fillable(ats: Ats, company: &str) -> String {
+    match ats {
+        Ats::Ashby => format!(
+            "{company} has switched off its Ashby page, so the addresses Ashby gives for its roles lead nowhere. Perch reads the roles; applying means the company's own site."
+        ),
+        other => format!(
+            "Perch can read {} boards but not fill their forms, so the role opens in your browser.",
+            other.label()
+        ),
+    }
 }
 
 /// The name a board goes by when its payload never states one.

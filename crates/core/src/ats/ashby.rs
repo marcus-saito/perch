@@ -51,6 +51,24 @@ impl Ashby {
         format!("https://jobs.ashbyhq.com/{token}")
     }
 
+    /// The company's name, when Ashby serves a hosted page for it.
+    ///
+    /// The listing API answers for every board, including one whose company
+    /// has switched the hosted page off in favour of its own site. Ashby
+    /// still renders the page shell for those, and inside it every address
+    /// the API gave out says not found. The shell itself tells the two apart:
+    /// a hosted page carries the company's name in its title, "Linear Jobs",
+    /// and a board without one carries the bare word "Jobs", exactly as a
+    /// board that never existed does. That name is also the only place Ashby
+    /// states what the company is called.
+    fn hosted_page(html: &str) -> Option<String> {
+        let start = html.find("<title>")? + "<title>".len();
+        let end = html[start..].find("</title>")? + start;
+        let title = html[start..end].trim();
+        let name = title.strip_suffix(" Jobs")?.trim();
+        (!name.is_empty()).then(|| name.to_string())
+    }
+
     fn listing_url(token: &str) -> String {
         format!("{API}/{token}")
     }
@@ -78,16 +96,33 @@ impl AtsAdapter for Ashby {
             return Ok(None);
         }
 
+        // The hosted page, for the company's name and for whether the
+        // addresses the API hands out lead anywhere. A shell that cannot be
+        // read is not evidence either way, so the board is taken as fillable
+        // and the next sync asks again.
+        let hosted = http
+            .get_html(&Self::board_url(&token))?
+            .map(|html| Self::hosted_page(&html));
+
         Ok(Some(DetectedBoard {
             ats: Ats::Ashby,
             token: token.clone(),
             url: Self::board_url(&token),
-            // Ashby's payload never names the company. The name the person
-            // typed is kept when they typed one, and the token stands in when
-            // they gave an address.
-            company_name: super::name_as_typed(input, &token),
-            fill_supported: self.fill_supported(),
+            // Ashby's payload never names the company. The hosted page does
+            // when there is one; failing that, the name the person typed is
+            // kept, and the token stands in when they gave an address.
+            company_name: match &hosted {
+                Some(Some(name)) => name.clone(),
+                _ => super::name_as_typed(input, &token),
+            },
+            fill_supported: self.fill_supported() && !matches!(hosted, Some(None)),
         }))
+    }
+
+    fn fills_now(&self, token: &str, http: &Http) -> Result<Option<bool>> {
+        Ok(http
+            .get_html(&Self::board_url(token))?
+            .map(|html| Self::hosted_page(&html).is_some()))
     }
 
     fn fetch(&self, token: &str, http: &Http) -> Result<Listing> {
@@ -256,6 +291,20 @@ mod tests {
             t("https://api.ashbyhq.com/posting-api/job-board/linear").as_deref(),
             Some("linear")
         );
+    }
+
+    #[test]
+    fn a_hosted_page_names_the_company_and_a_switched_off_one_does_not() {
+        assert_eq!(
+            Ashby::hosted_page("<html><head><title>Linear Jobs</title></head></html>").as_deref(),
+            Some("Linear")
+        );
+        // A company that moved its applications to its own site: Ashby still
+        // serves the shell, with nothing in the title, and every address the
+        // API gave out for it says not found.
+        assert_eq!(Ashby::hosted_page("<title>Jobs</title>"), None);
+        assert_eq!(Ashby::hosted_page("<title> Jobs</title>"), None);
+        assert_eq!(Ashby::hosted_page("no title at all"), None);
     }
 
     #[test]

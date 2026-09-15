@@ -17,6 +17,18 @@ pub fn sync_all(store: &mut Store, http: &Http, now: OffsetDateTime) -> Result<S
             outcome.unsupported.push(board.company_name.clone());
             continue;
         };
+        // Whether the board can still be filled is asked alongside the
+        // listing, and a changed answer is written down, so a company that
+        // switches its hosted page off stops being offered a fill at the
+        // next sync rather than at the next failed one.
+        if let Some(fills) = adapter.fills_now(&board.token, http)? {
+            if fills != board.fill_supported {
+                store.set_fill_supported(board.id, fills)?;
+                outcome
+                    .fill_changed
+                    .push((board.company_name.clone(), fills));
+            }
+        }
         match adapter.fetch(&board.token, http) {
             Ok(listing) => outcome.reports.push(store.absorb(&board, &listing, now)?),
             Err(err) => {
@@ -40,6 +52,9 @@ pub struct SyncOutcome {
     /// version, say. Named rather than silently skipped.
     pub unsupported: Vec<String>,
     pub failures: Vec<(String, String)>,
+    /// Boards whose forms Perch can fill today and could not last time, or the
+    /// other way round, each with the answer now.
+    pub fill_changed: Vec<(String, bool)>,
 }
 
 impl SyncOutcome {
@@ -56,6 +71,8 @@ impl SyncOutcome {
         self.reports.iter().map(|r| r.closed).sum()
     }
     pub fn quiet(&self) -> bool {
-        self.reports.iter().all(|r| r.quiet()) && self.failures.is_empty()
+        self.reports.iter().all(|r| r.quiet())
+            && self.failures.is_empty()
+            && self.fill_changed.is_empty()
     }
 }

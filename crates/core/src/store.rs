@@ -308,6 +308,15 @@ impl Store {
         })
     }
 
+    /// Whether the board's forms can be filled, as last checked.
+    pub fn set_fill_supported(&self, board_id: i64, fills: bool) -> Result<()> {
+        self.conn.execute(
+            "UPDATE board SET fill_supported = ?1 WHERE id = ?2",
+            params![fills as i64, board_id],
+        )?;
+        Ok(())
+    }
+
     /// Stops watching without destroying anything. Perch does not delete, so
     /// this sets a date exactly as dismissing a role does, and `watch add` on
     /// the same company clears it again with its history intact.

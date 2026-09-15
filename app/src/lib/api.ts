@@ -25,6 +25,8 @@ export interface RoleRow {
   url: string;
   ats: string;
   fillSupported: boolean;
+  /** Why not, when not, in the sentence the screen shows. */
+  whyNotFillable: string | null;
   /** Already written for a person: "posted 6 hours ago", "open 143 days". */
   signal: string;
   freshness: Freshness;
@@ -75,6 +77,7 @@ export interface Board {
   url: string;
   checked: string;
   fillSupported: boolean;
+  whyNotFillable: string | null;
   history: string;
 }
 

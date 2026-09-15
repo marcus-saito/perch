@@ -349,14 +349,14 @@ fn watch_add(store: &mut Store, input: &str, now: OffsetDateTime) -> Result<()> 
         board.company_name
     );
     println!("  {}", board.url);
-    println!(
-        "  {}",
-        if board.fill_supported {
-            "Forms filled here, from your profile."
-        } else {
-            "Perch can read this board but not fill it; roles open in the browser."
-        }
-    );
+    if board.fill_supported {
+        println!("  Forms filled here, from your profile.");
+    } else {
+        println!(
+            "  {}",
+            wrap(&ats::why_not_fillable(board.ats, &board.company_name), 2)
+        );
+    }
     println!();
     println!("Run `perch sync` to read it for the first time. Anything already open");
     println!("there arrives in the feed at its real age, not as new.");
@@ -402,11 +402,11 @@ fn watch_list(store: &Store, style: &Style, now: OffsetDateTime) -> Result<()> {
             )
         };
         let fill = if board.fill_supported {
-            "Forms filled here."
+            "Forms filled here.".to_string()
         } else {
-            "Opens in browser."
+            ats::why_not_fillable(board.ats, &board.company_name)
         };
-        println!("  {}", style.dim(&format!("{history} {fill}")));
+        println!("  {}", style.dim(&wrap(&format!("{history} {fill}"), 2)));
         println!();
     }
     Ok(())
@@ -466,6 +466,19 @@ fn sync(store: &mut Store, style: &Style, now: OffsetDateTime) -> Result<()> {
         println!("  {}: {}", report.company, parts.join(", "));
     }
 
+    for (name, fills) in &outcome.fill_changed {
+        println!(
+            "  {}",
+            wrap(
+                &if *fills {
+                    format!("{name}: its Ashby page is back, so its forms can be filled again.")
+                } else {
+                    format!("{name}: its Ashby page has been switched off, so its roles open nowhere and Perch no longer offers to fill them.")
+                },
+                2
+            )
+        );
+    }
     for name in &outcome.unsupported {
         println!(
             "  {}",
@@ -1553,6 +1566,19 @@ fn apply(
     resume: Option<&str>,
 ) -> Result<()> {
     let role = store.role_by_reference(reference)?;
+    if !role.fill_supported {
+        println!();
+        println!("  {}", style.dim(&role.company_name));
+        println!("  {}", role.title);
+        println!();
+        println!(
+            "  {}",
+            wrap(&ats::why_not_fillable(role.ats, &role.company_name), 2)
+        );
+        println!("  {}", style.dim(&role.url));
+        println!();
+        return Ok(());
+    }
     let profile = perch_core::Profile::load(&paths.profile())?;
 
     // Whatever was asked for, or the first document the profile calls a

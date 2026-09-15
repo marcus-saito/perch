@@ -50,6 +50,8 @@ pub struct RoleDto {
     pub url: String,
     pub ats: String,
     pub fill_supported: bool,
+    /// Why not, when not, in the sentence the screen shows.
+    pub why_not_fillable: Option<String>,
     /// Already written for a person: "posted 6 hours ago", "open 143 days".
     pub signal: String,
     /// fresh · recent · settled · stale · tired
@@ -107,6 +109,7 @@ pub struct BoardDto {
     pub url: String,
     pub checked: String,
     pub fill_supported: bool,
+    pub why_not_fillable: Option<String>,
     pub history: String,
 }
 
@@ -196,6 +199,8 @@ fn role_dto(role: &Role, why: Option<&perch_core::Why>, now: OffsetDateTime) -> 
         url: role.url.clone(),
         ats: role.ats.label().to_string(),
         fill_supported: role.fill_supported,
+        why_not_fillable: (!role.fill_supported)
+            .then(|| perch_core::ats::why_not_fillable(role.ats, &role.company_name)),
         signal: signal.text.clone(),
         freshness: signal.freshness(now).class().to_string(),
         bucket: signal.bucket(now).heading().to_string(),
@@ -374,6 +379,13 @@ fn sync(state: State<'_, App>) -> Answer<SyncDto> {
         }
         lines.push(format!("{}: {}", report.company, parts.join(", ")));
     }
+    for (name, fills) in &outcome.fill_changed {
+        lines.push(if *fills {
+            format!("{name}: its Ashby page is back, so its forms can be filled again")
+        } else {
+            format!("{name}: its Ashby page has been switched off, so Perch no longer offers to fill its forms")
+        });
+    }
 
     Ok(SyncDto {
         lines,
@@ -429,6 +441,8 @@ fn watchlist(state: State<'_, App>) -> Answer<Vec<BoardDto>> {
                     None => "not read yet".to_string(),
                 },
                 fill_supported: board.fill_supported,
+                why_not_fillable: (!board.fill_supported)
+                    .then(|| perch_core::ats::why_not_fillable(board.ats, &board.company_name)),
                 history: if seen == 0 {
                     "Nothing seen here yet.".to_string()
                 } else {
@@ -961,14 +975,18 @@ fn fill_plan(
     let role = store.role_by_reference(&reference).map_err(plainly)?;
     let profile = Profile::load(&state.paths.profile()).map_err(plainly)?;
 
-    let Some(plan) = perch_fill::plan::build(role.ats, &role.url, &profile, resume.as_deref())
-    else {
+    // The board's answer comes first. An adapter can build a plan for any
+    // Ashby address, including one on a page the company has switched off,
+    // and the store is where that fact lives.
+    let plan = if role.fill_supported {
+        perch_fill::plan::build(role.ats, &role.url, &profile, resume.as_deref())
+    } else {
+        None
+    };
+    let Some(plan) = plan else {
         return Ok(FillPlanDto {
             plan: serde_json::Value::Null,
-            what_happens_next: format!(
-                "Perch cannot fill {}'s forms, so this one opens in your browser and you fill it there.",
-                role.ats.label()
-            ),
+            what_happens_next: perch_core::ats::why_not_fillable(role.ats, &role.company_name),
             attachment_caveat: None,
             company: role.company_name,
             title: role.title,
@@ -1198,8 +1216,12 @@ fn open_and_fill(
         let role = store.role_by_reference(&reference).map_err(plainly)?;
         let profile = Profile::load(&state.paths.profile()).map_err(plainly)?;
 
-        let Some(plan) = perch_fill::plan::build(role.ats, &role.url, &profile, resume.as_deref())
-        else {
+        let plan = if role.fill_supported {
+            perch_fill::plan::build(role.ats, &role.url, &profile, resume.as_deref())
+        } else {
+            None
+        };
+        let Some(plan) = plan else {
             // Nothing to fill here; hand them the page and stop.
             return open_in_browser(app, role.url).map(|()| FillStartedDto {
                 started: Started::Browser,

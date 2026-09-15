@@ -265,7 +265,7 @@ export function WatchlistView({ onChanged }: { onChanged: () => void }) {
                       {row.history}{" "}
                       {row.fillSupported
                         ? "Forms fill from your profile here."
-                        : "This one opens in the browser."}
+                        : row.whyNotFillable}
                     </span>
                   </div>
                 </div>

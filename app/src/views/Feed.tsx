@@ -503,7 +503,7 @@ export function FeedView({
                 >
                   {head.fillSupported
                     ? "You read what Perch would type before it types anything. It never submits."
-                    : "Perch cannot fill this board's forms, so it opens the page as it is."}
+                    : head.whyNotFillable}
                 </span>
               </div>
             )}
