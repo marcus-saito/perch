@@ -166,6 +166,10 @@ fn schema() -> Value {
             "skills":   { "type": "string" },
             "experience": {
                 "type": "array",
+                // Perch keeps four positions and reads no more than four
+                // whatever comes back. Said in the contract as well as in the
+                // prose, for endpoints that honour the schema.
+                "maxItems": 4,
                 "items": {
                     "type": "object",
                     "additionalProperties": false,
