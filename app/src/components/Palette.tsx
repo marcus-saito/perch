@@ -67,6 +67,13 @@ export function Palette({
             setActive(0);
           }}
           onKeyDown={(e) => {
+            // The keys the palette answers stop here. React flushes the
+            // palette's close before the window listeners run, so an Enter
+            // that ran a command went on to reach the feed with no input
+            // focused, and opened whichever row was selected.
+            if (["ArrowDown", "ArrowUp", "Escape", "Enter"].includes(e.key)) {
+              e.stopPropagation();
+            }
             if (e.key === "ArrowDown") {
               e.preventDefault();
               setActive((a) => Math.min(a + 1, shown.length - 1));
